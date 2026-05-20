@@ -24,7 +24,7 @@
 - `src/components/`: Reusable React components.
 - `src/lib/`: Utility functions, Prisma client, and shared libraries.
 - `src/types/`: TypeScript definitions and interfaces.
-- `prisma/`: Database schema and migrations.
+- `prisma/`: Database schema and migrations. ss
 
 ## Recent Activity & Status
 - **Database Migration**: Successfully migrated from PostgreSQL to MySQL to match the remote server (`96.127.186.146`).
