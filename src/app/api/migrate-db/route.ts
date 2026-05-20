@@ -13,6 +13,17 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let outgoingIp = "unknown";
+  try {
+    const ipRes = await fetch("https://api.ipify.org?format=json");
+    if (ipRes.ok) {
+      const ipJson = await ipRes.json();
+      outgoingIp = ipJson.ip;
+    }
+  } catch (ipErr) {
+    // Ignore
+  }
+
   // Connect to the OLD remote source database
   const sourcePrisma = new PrismaClient({
     datasourceUrl: "mysql://starlitc_trimpex_flow:Flow!%402026@96.127.186.146:3306/starlitc_trimpex_flow"
@@ -76,6 +87,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
+      outgoingIp,
       message: "Database migration successful on production",
       migrated: results
     });
@@ -83,6 +95,7 @@ export async function GET(request: Request) {
     console.error("[MIGRATOR] Migration failed:", error);
     return NextResponse.json({
       success: false,
+      outgoingIp,
       error: error.message,
       stack: error.stack
     }, { status: 500 });
