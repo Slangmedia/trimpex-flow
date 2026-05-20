@@ -7,7 +7,7 @@ const sourcePrisma = new PrismaClient({
 
 // Connect to the NEW database (destination)
 const destPrisma = new PrismaClient({
-  datasourceUrl: "mysql://u650091516_trimpex_flow:Flow!%402026@193.203.184.52:3306/u650091516_trimpex_flow"
+  datasourceUrl: "mysql://u650091516_flow_trimpex:Flow!%402026@193.203.184.52:3306/u650091516_flow_trimpex"
 });
 
 async function migrate() {
