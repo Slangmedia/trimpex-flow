@@ -1,0 +1,99 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = params;
+
+    const renderItem = await prisma.renderItem.findUnique({
+      where: { id },
+      include: {
+        versions: {
+          orderBy: { version_number: "desc" },
+          include: {
+            submittedBy: {
+              select: { name: true, avatar_url: true }
+            }
+          }
+        },
+        project: {
+          select: { name: true, client: { select: { name: true } } }
+        }
+      },
+    });
+
+    if (!renderItem) {
+      return NextResponse.json({ error: "Render item not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(renderItem);
+  } catch (error) {
+    console.error("[RENDER_GET_ERROR]", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
+// Handler for decisions (Approve/Reject)
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = params;
+    const { action, note, versionId } = await req.json();
+
+    if (!action || !versionId) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Update status based on admin action
+    const newStatus = action === "APPROVE" ? "CLIENT_PENDING" : "ADMIN_REJECTED";
+    const adminAction = action === "APPROVE" ? "APPROVED" : "REJECTED";
+
+    // 1. Update the version review details
+    await prisma.renderVersion.update({
+      where: { id: versionId },
+      data: {
+        admin_reviewed_at: new Date(),
+        admin_action: adminAction,
+        admin_note: note,
+      },
+    });
+
+    // 2. Update the parent RenderItem status
+    const result = await prisma.renderItem.update({
+      where: { id },
+      data: {
+        current_status: newStatus,
+      },
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("[RENDER_PATCH_ERROR]", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
