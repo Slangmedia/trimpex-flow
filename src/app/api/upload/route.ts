@@ -7,8 +7,12 @@ import { authOptions } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Authenticate - allow either active session OR valid dev-upload token matching NEXTAUTH_SECRET
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const devToken = req.headers.get("x-dev-upload-token");
+    const isTokenValid = devToken && devToken === process.env.NEXTAUTH_SECRET;
+
+    if (!session?.user && !isTokenValid) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -17,6 +21,41 @@ export async function POST(req: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    // 2. If running locally in development mode and NEXTAUTH_URL is a remote server, forward the upload there.
+    const isDev = process.env.NODE_ENV !== "production";
+    const targetUrl = process.env.NEXTAUTH_URL;
+    const isTargetRemote = targetUrl && !targetUrl.includes("localhost") && !targetUrl.includes("127.0.0.1");
+    const requestUrl = new URL(req.url);
+    const isRequestLocal = requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1" || requestUrl.hostname.startsWith("192.168.") || requestUrl.hostname.startsWith("10.");
+
+    if (isDev && isTargetRemote && isRequestLocal && !devToken) {
+      const forwardUrl = `${targetUrl.replace(/\/$/, "")}/api/upload`;
+      const forwardFormData = new FormData();
+      forwardFormData.append("file", file);
+
+      try {
+        const response = await fetch(forwardUrl, {
+          method: "POST",
+          headers: {
+            "x-dev-upload-token": process.env.NEXTAUTH_SECRET || "",
+          },
+          body: forwardFormData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return NextResponse.json(data);
+        } else {
+          const text = await response.text();
+          console.error("Failed to forward upload to production:", text);
+          // If forwarding fails, fallback to local disk save so local dev doesn't break
+        }
+      } catch (err) {
+        console.error("Error forwarding upload to production:", err);
+        // If forwarding fails, fallback to local disk save so local dev doesn't break
+      }
     }
 
     const bytes = await file.arrayBuffer();

@@ -11,6 +11,17 @@ export async function GET(
     const filePath = path.join(process.cwd(), "public", "uploads", filename);
 
     if (!fs.existsSync(filePath)) {
+      // If the file is not found locally, check if we should fallback redirect to production
+      const targetUrl = process.env.NEXTAUTH_URL;
+      const isTargetRemote = targetUrl && !targetUrl.includes("localhost") && !targetUrl.includes("127.0.0.1");
+      const requestUrl = new URL(request.url);
+      const isRequestLocal = requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1" || requestUrl.hostname.startsWith("192.168.") || requestUrl.hostname.startsWith("10.");
+
+      if (isTargetRemote && isRequestLocal) {
+        const remoteFileUrl = `${targetUrl.replace(/\/$/, "")}/uploads/${filename}`;
+        return NextResponse.redirect(remoteFileUrl, 307);
+      }
+
       return new NextResponse("File not found", { status: 404 });
     }
 
