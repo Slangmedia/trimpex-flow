@@ -127,5 +127,47 @@ export async function GET(request: Request) {
     };
   }
 
+  // 4. Test connection via 127.0.0.1 and localhost
+  let localhostUrl = "";
+  let loopbackUrl = "";
+  try {
+    const rawUrl = process.env.DATABASE_URL || "";
+    loopbackUrl = rawUrl.replace(/@[^/]+/, "@127.0.0.1:3306");
+    localhostUrl = rawUrl.replace(/@[^/]+/, "@localhost:3306");
+  } catch (err) {}
+
+  results.databaseConnection.loopbackClient = { success: false, error: null };
+  results.databaseConnection.localhostClient = { success: false, error: null };
+
+  if (loopbackUrl) {
+    try {
+      const tempPrisma = new PrismaClient({
+        datasourceUrl: loopbackUrl,
+      });
+      await tempPrisma.user.findFirst({ select: { id: true } });
+      results.databaseConnection.loopbackClient.success = true;
+      await tempPrisma.$disconnect();
+    } catch (e: any) {
+      results.databaseConnection.loopbackClient.error = {
+        message: e.message,
+      };
+    }
+  }
+
+  if (localhostUrl) {
+    try {
+      const tempPrisma = new PrismaClient({
+        datasourceUrl: localhostUrl,
+      });
+      await tempPrisma.user.findFirst({ select: { id: true } });
+      results.databaseConnection.localhostClient.success = true;
+      await tempPrisma.$disconnect();
+    } catch (e: any) {
+      results.databaseConnection.localhostClient.error = {
+        message: e.message,
+      };
+    }
+  }
+
   return NextResponse.json(results);
 }
