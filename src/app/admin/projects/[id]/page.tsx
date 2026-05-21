@@ -163,13 +163,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      const presets = [
-        "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80"
-      ];
-      setFilePreview(presets[Math.floor(Math.random() * presets.length)]);
+      setFilePreview(URL.createObjectURL(file));
     }
   };
 
@@ -177,15 +171,33 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     e.preventDefault();
     if (!newRenderName.trim()) return;
 
-    const presets = [
-      "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80"
-    ];
-    const fileUrl = filePreview || presets[Math.floor(Math.random() * presets.length)];
+    let fileUrl = "";
+    let fileType = "IMAGE";
 
     try {
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+        if (uploadRes.ok) {
+          const { url } = await uploadRes.json();
+          fileUrl = url;
+          fileType = selectedFile.type.startsWith("video/") ? "VIDEO" : "IMAGE";
+        } else {
+          console.error("File upload failed, falling back to preset.");
+        }
+      }
+
+      if (!fileUrl) {
+        const presets = [
+          "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80"
+        ];
+        fileUrl = presets[Math.floor(Math.random() * presets.length)];
+      }
+
       const res = await fetch("/api/renders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -193,7 +205,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           name: newRenderName,
           projectId: params.id,
           fileUrl,
-          fileType: "IMAGE",
+          fileType,
           renderType: newRenderType
         })
       });

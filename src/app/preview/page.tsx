@@ -129,16 +129,28 @@ function PreviewContent() {
         className="flex-1 w-full h-full flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing bg-neutral-950"
         onMouseDown={handleMouseDown}
       >
-        <img 
-          src={imageUrl} 
-          alt="Preview" 
-          style={{ 
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`, 
-            transition: isDragging ? "none" : "transform 0.15s ease-out",
-            pointerEvents: "none"
-          }}
-          className="max-w-[85vw] max-h-[85vh] object-contain shadow-2xl origin-center"
-        />
+        {imageUrl.toLowerCase().endsWith(".mp4") ? (
+          <video 
+            src={imageUrl} 
+            controls 
+            style={{ 
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`, 
+              transition: isDragging ? "none" : "transform 0.15s ease-out",
+            }}
+            className="max-w-[85vw] max-h-[85vh] object-contain shadow-2xl origin-center"
+          />
+        ) : (
+          <img 
+            src={imageUrl} 
+            alt="Preview" 
+            style={{ 
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`, 
+              transition: isDragging ? "none" : "transform 0.15s ease-out",
+              pointerEvents: "none"
+            }}
+            className="max-w-[85vw] max-h-[85vh] object-contain shadow-2xl origin-center"
+          />
+        )}
       </div>
     </div>
   );
