@@ -8,21 +8,6 @@ async function getAuthUser(req: NextRequest) {
   if (session?.user) {
     return session.user;
   }
-
-  // Local development sandbox fallback: retrieve context user based on referer
-  const referer = req.headers.get("referer") || "";
-  const isAdminPath = referer.includes("/admin");
-  const fallbackUser = await prisma.user.findFirst({
-    where: { role: isAdminPath ? "ADMIN" : "EMPLOYEE" }
-  });
-  if (fallbackUser) {
-    return {
-      id: fallbackUser.id,
-      name: fallbackUser.name,
-      email: fallbackUser.email,
-      role: fallbackUser.role,
-    };
-  }
   return null;
 }
 

@@ -6,10 +6,10 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
-    // In local development sandbox, bypass strict NextAuth API session extraction 
-    // to prevent 401 Unauthorized errors and directly use the seeded employee ID.
-    const userId = session?.user?.id || "employee-user-id";
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.user.id;
 
     const { renderItemId, fileUrl, fileType } = await req.json();
 

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +10,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = params;
     if (!id) return NextResponse.json({ error: "Project ID is required" }, { status: 400 });
 
@@ -29,6 +36,13 @@ export async function GET(
     });
 
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+
+    if (session.user.role !== "ADMIN") {
+      const isAssigned = project.employees.some(e => e.employee_id === session.user.id);
+      if (!isAssigned) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
 
     const mappedItems = project.renderItems.map((item) => {
       const currentVersion = item.versions.find(v => v.is_current_version) || item.versions[0];
@@ -81,6 +95,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = params;
     if (!id) return NextResponse.json({ error: "Project ID is required" }, { status: 400 });
 
@@ -147,6 +166,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = params;
 
     if (!id) {

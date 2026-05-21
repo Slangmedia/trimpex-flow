@@ -1,7 +1,8 @@
-import { AdminSidebar } from "@/components/layout/AdminSidebar";
-import { AdminHeader } from "@/components/layout/AdminHeader";
+import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { AdminSidebar } from "@/components/layout/AdminSidebar";
+import { AdminHeader } from "@/components/layout/AdminHeader";
 
 export default async function AdminLayout({
   children,
@@ -11,7 +12,11 @@ export default async function AdminLayout({
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    // redirect("/login");
+    redirect("/login");
+  }
+
+  if (session.user.role !== "ADMIN") {
+    redirect("/employee/projects");
   }
 
   return (

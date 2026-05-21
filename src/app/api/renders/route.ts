@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
-    // In local development sandbox, bypass strict NextAuth API session extraction 
-    // to prevent 401 Unauthorized errors and directly use the seeded employee ID.
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const body = await req.json();
     const { name, skuCode, projectId, fileUrl, fileType } = body;
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userId = session?.user?.id || "employee-user-id";
+    const userId = session.user.id;
     const mappedFileType = fileType === "VIDEO" ? "VIDEO" : "IMAGE";
 
     // 1. Create RenderItem

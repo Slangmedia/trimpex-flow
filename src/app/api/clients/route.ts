@@ -7,6 +7,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const clients = await prisma.client.findMany({
       include: {
         _count: {
@@ -60,9 +65,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Get current admin user from session or fallback to seeded admin ID
     const session = await getServerSession(authOptions);
-    const adminId = session?.user?.id || "admin-user-id";
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const adminId = session.user.id;
 
     // Create client and project transactionally
     const newClient = await prisma.client.create({

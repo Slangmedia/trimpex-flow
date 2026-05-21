@@ -3,11 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
 export async function GET() {
   try {
-    // In local development sandbox, bypass strict NextAuth API session extraction 
-    // to prevent 401 Unauthorized errors and directly use the seeded employee ID.
-    const userId = "employee-user-id";
+    const session = await getServerSession(authOptions);
+    if (!session?.user || session.user.role !== "EMPLOYEE") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.user.id;
 
     const projects = await prisma.project.findMany({
       where: {

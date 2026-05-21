@@ -5,21 +5,10 @@ import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    let userId = session?.user?.id;
-
-    // Fallback: If no session, return appropriate user role based on referer header context
-    if (!userId) {
-      const referer = request.headers.get("referer") || "";
-      const isAdminPath = referer.includes("/admin");
-      
-      const fallbackUser = await prisma.user.findFirst({
-        where: { role: isAdminPath ? "ADMIN" : "EMPLOYEE" }
-      });
-      userId = fallbackUser?.id;
-    }
+    const userId = session?.user?.id;
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

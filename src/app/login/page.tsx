@@ -6,28 +6,50 @@ import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
     
-    // Mock login for now
-    setTimeout(() => {
-      if (email.includes("admin")) {
-        router.push("/admin/dashboard");
-      } else if (email.includes("client")) {
-        router.push("/c/cyberdyne-token-2026");
+    try {
+      const res = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
+
+      if (res?.error) {
+        setError("Invalid email or password");
+        setIsLoading(false);
       } else {
-        router.push("/employee/projects");
+        // Fetch current user details to route based on role
+        const meRes = await fetch("/api/user/me");
+        if (meRes.ok) {
+          const user = await meRes.json();
+          if (user.role === "ADMIN") {
+            router.push("/admin/dashboard");
+          } else {
+            router.push("/employee/projects");
+          }
+        } else {
+          setError("Failed to retrieve user role.");
+          setIsLoading(false);
+        }
       }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -43,6 +65,11 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-3 rounded bg-destructive/10 text-destructive text-sm text-center font-medium">
+              {error}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Email Address</label>
@@ -69,12 +96,7 @@ export default function LoginPage() {
             <Button type="submit" className="w-full mt-6" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
-            
-            <p className="text-center text-sm text-muted-foreground mt-4 leading-relaxed">
-              Use <span className="font-mono bg-muted px-1 py-0.5 rounded text-foreground">admin@3dflow.com</span> for Admin Portal,<br />
-              <span className="font-mono bg-muted px-1 py-0.5 rounded text-foreground">user@3dflow.com</span> for Employee Portal, or<br />
-              <span className="font-mono bg-muted px-1 py-0.5 rounded text-foreground">client@3dflow.com</span> for Client Portal.
-            </p>
+            {/* Removed helper text credentials info */}
           </form>
         </CardContent>
       </Card>

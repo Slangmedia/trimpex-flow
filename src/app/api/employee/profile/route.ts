@@ -9,19 +9,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    let userId = session?.user?.id;
-
-    // Fallback: If no session, find the first employee
-    if (!userId) {
-      const empUser = await prisma.user.findFirst({
-        where: { role: "EMPLOYEE" }
-      });
-      userId = empUser?.id;
+    if (!session?.user || session.user.role !== "EMPLOYEE") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    if (!userId) {
-      return NextResponse.json({ error: "No employee user found" }, { status: 404 });
-    }
+    const userId = session.user.id;
 
     const employee = await prisma.user.findUnique({
       where: { id: userId },
@@ -52,19 +43,10 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    let userId = session?.user?.id;
-
-    // Fallback: If no session, update the first employee
-    if (!userId) {
-      const empUser = await prisma.user.findFirst({
-        where: { role: "EMPLOYEE" }
-      });
-      userId = empUser?.id;
+    if (!session?.user || session.user.role !== "EMPLOYEE") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    if (!userId) {
-      return NextResponse.json({ error: "No employee user found to update" }, { status: 404 });
-    }
+    const userId = session.user.id;
 
     const body = await request.json();
     const { name, email, password, avatarUrl } = body;

@@ -12,9 +12,11 @@ export default async function EmployeeLayout({
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    // redirect("/login");
-  } else if (session.user.role === "ADMIN") {
-    // redirect("/admin/dashboard");
+    redirect("/login");
+  }
+
+  if (session.user.role !== "EMPLOYEE") {
+    redirect("/admin/dashboard");
   }
 
   return (
