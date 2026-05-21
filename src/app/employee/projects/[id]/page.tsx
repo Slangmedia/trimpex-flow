@@ -9,20 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusPill, RenderStatus } from "@/components/StatusPill";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,11 +53,19 @@ const projectsData: Record<string, { name: string, clientName: string, deadline:
     ]
   }
 };
+interface UserInfo {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatarUrl?: string;
+}
 
 export default function EmployeeProjectDetailPage({ params }: { params: { id: string } }) {
   const [project, setProject] = useState({ id: params.id, name: "Loading...", clientName: "Loading...", deadline: "Loading...", totalRenders: 0 });
   const [renders, setRenders] = useState<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
 
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
   const [isRevisionSheetOpen, setIsRevisionSheetOpen] = useState(false);
@@ -77,6 +76,37 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
   const handleCloseDetailModal = () => {
     setDetailRender(null);
     setSelectedVersion(null);
+  };
+
+  const handleDeleteRender = async (renderId: string) => {
+    if (!confirm("Are you sure you want to delete this render? This action cannot be undone.")) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/renders/${renderId}`, {
+        method: "DELETE",
+      });
+      
+      if (res.ok) {
+        // Remove from list
+        setRenders(prev => prev.filter(r => r.id !== renderId));
+        // Decrease totalRenders count
+        setProject(prev => ({
+          ...prev,
+          totalRenders: Math.max(0, prev.totalRenders - 1)
+        }));
+        // Close detail modal
+        handleCloseDetailModal();
+        alert("Render deleted successfully.");
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to delete render.");
+      }
+    } catch (error) {
+      console.error("Error deleting render:", error);
+      alert("An unexpected error occurred.");
+    }
   };
 
   // Form states
@@ -112,6 +142,20 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
 
   useEffect(() => {
     loadProjectDetails();
+    
+    async function fetchCurrentUser() {
+      try {
+        const res = await fetch("/api/user/me");
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentUser(data);
+        }
+      } catch (err) {
+        console.error("Failed to load user info:", err);
+      }
+    }
+    
+    fetchCurrentUser();
   }, [params.id]);
 
   const openRevisionSheet = (render: any) => {
@@ -641,12 +685,12 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                             
                             {v.clientFeedback && (
                               <p className="italic text-muted-foreground mt-1.5 pt-1.5 border-t border-border/50">
-                                <span className="font-medium text-foreground">Client Feedback:</span> "{v.clientFeedback}"
+                                <span className="font-medium text-foreground">Client Feedback:</span> &ldquo;{v.clientFeedback}&rdquo;
                               </p>
                             )}
                             {v.adminNote && (
                               <p className="text-muted-foreground mt-1.5 pt-1.5 border-t border-border/50">
-                                <span className="font-medium text-foreground">Admin Note:</span> "{v.adminNote}"
+                                <span className="font-medium text-foreground">Admin Note:</span> &ldquo;{v.adminNote}&rdquo;
                               </p>
                             )}
                           </div>
@@ -656,6 +700,21 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                   })}
                 </div>
               </div>
+
+              {/* Delete Render Action */}
+              {detailRender && 
+               (detailRender.currentStatus || detailRender.status) !== "COMPLETE" && 
+               (detailRender.createdById === currentUser?.id || currentUser?.role === "ADMIN") && (
+                <div className="p-4 border-t border-border bg-card shrink-0">
+                  <Button
+                    variant="destructive"
+                    className="w-full rounded-xl"
+                    onClick={() => handleDeleteRender(detailRender.id)}
+                  >
+                    Delete Render
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>

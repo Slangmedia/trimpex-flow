@@ -14,7 +14,8 @@ export async function GET(
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
-        client: { select: { name: true } },
+        client: { select: { name: true, id: true } },
+        employees: { select: { employee_id: true } },
         renderItems: {
           include: {
             versions: {
@@ -37,6 +38,7 @@ export async function GET(
         skuCode: item.sku_code,
         currentVersion: item.current_version,
         currentStatus: item.current_status,
+        createdById: item.created_by_id,
         submittedBy: item.createdBy?.name || "Unknown",
         submittedAt: item.createdAt.toLocaleDateString(),
         imageUrl: currentVersion?.file_url || "",
@@ -60,9 +62,12 @@ export async function GET(
     return NextResponse.json({
       id: project.id,
       name: project.name,
+      description: project.description || "",
+      clientId: project.client_id,
       clientName: project.client.name,
       deadline: project.deadline.toISOString().split("T")[0],
       totalRenders: project.total_render_count,
+      employees: project.employees.map((e) => e.employee_id),
       renderItems: mappedItems
     });
   } catch (error) {
@@ -70,6 +75,72 @@ export async function GET(
     return NextResponse.json({ error: "Failed to fetch project" }, { status: 500 });
   }
 }
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    if (!id) return NextResponse.json({ error: "Project ID is required" }, { status: 400 });
+
+    const body = await request.json();
+    const { name, description, totalRenders, deadline, clientId, employees } = body;
+
+    if (!name || !clientId) {
+      return NextResponse.json({ error: "Missing required fields: name, clientId" }, { status: 400 });
+    }
+
+    const deadlineDate = deadline ? new Date(deadline) : new Date();
+
+    // Update project
+    const updatedProject = await prisma.project.update({
+      where: { id },
+      data: {
+        name,
+        description: description || null,
+        total_render_count: parseInt(totalRenders) || 0,
+        deadline: deadlineDate,
+        client_id: clientId,
+      },
+      include: {
+        client: true
+      }
+    });
+
+    // Update employee assignments
+    if (employees && Array.isArray(employees)) {
+      // Delete existing assignments for this project
+      await prisma.projectEmployee.deleteMany({
+        where: { project_id: id }
+      });
+
+      // Insert new ones
+      for (const empId of employees) {
+        await prisma.projectEmployee.create({
+          data: {
+            project_id: id,
+            employee_id: empId
+          }
+        });
+      }
+    }
+
+    return NextResponse.json({
+      id: updatedProject.id,
+      name: updatedProject.name,
+      description: updatedProject.description || "",
+      clientId: updatedProject.client_id,
+      clientName: updatedProject.client.name,
+      deadline: updatedProject.deadline.toISOString().split("T")[0],
+      totalRenders: updatedProject.total_render_count
+    });
+  } catch (error) {
+    console.error("Failed to update project:", error);
+    return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
+  }
+}
+
 
 export async function DELETE(
   request: Request,

@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       skuCode: completeItem.sku_code,
       currentVersion: completeItem.current_version,
       currentStatus: completeItem.current_status,
+      createdById: completeItem.created_by_id,
       submittedBy: completeItem.createdBy?.name || "Unknown",
       submittedAt: completeItem.createdAt.toLocaleDateString(),
       imageUrl: completeItem.versions[0]?.file_url || "",

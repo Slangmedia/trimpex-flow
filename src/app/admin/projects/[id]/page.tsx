@@ -21,7 +21,8 @@ import {
   Plus,
   UploadCloud,
   LayoutGrid,
-  List
+  List,
+  Pencil
 } from "lucide-react";
 import { useHeaderStore } from "@/lib/store/headerStore";
 import { Button } from "@/components/ui/button";
@@ -440,6 +441,14 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                   <span><strong className="text-white">{completeCount}/{totalRenders}</strong> Done</span>
                 </div>
               </div>
+            </div>
+            
+            <div className="flex items-center gap-3 mt-4 md:mt-0">
+              <Link href={`/admin/projects/${project.id}/edit`}>
+                <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-xl h-10 px-5 flex items-center gap-2 transition-colors">
+                  <Pencil className="h-4 w-4" /> Edit Project
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

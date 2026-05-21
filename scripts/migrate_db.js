@@ -2,19 +2,19 @@ const { PrismaClient } = require('@prisma/client');
 
 // Connect to the OLD database (source)
 const sourcePrisma = new PrismaClient({
-  datasourceUrl: "mysql://starlitc_trimpex_flow:Flow!%402026@96.127.186.146:3306/starlitc_trimpex_flow"
+  datasourceUrl: "mysql://starlitc_flow_user:Flow%21%402025@96.127.186.146:3306/starlitc_flow"
 });
 
 // Connect to the NEW database (destination)
 const destPrisma = new PrismaClient({
-  datasourceUrl: "mysql://u650091516_flow_trimpex:Flow!%402026@193.203.184.52:3306/u650091516_flow_trimpex"
+  datasourceUrl: "mysql://starlitc_flow_user:Flow%21%402025@96.127.186.146:3306/starlitc_flow"
 });
 
 async function migrate() {
   console.log("Starting data migration...");
 
   // We must migrate in topological order to satisfy foreign key constraints
-  
+
   // 1. Users
   const users = await sourcePrisma.user.findMany();
   if (users.length > 0) await destPrisma.user.createMany({ data: users, skipDuplicates: true });
