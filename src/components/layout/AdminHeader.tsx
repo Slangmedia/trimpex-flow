@@ -44,6 +44,8 @@ export function AdminHeader() {
   const notificationLink = isAdmin ? "/admin/notifications" : "/employee/notifications";
   const settingsLink = isAdmin ? "/admin/settings" : "/employee/profile";
 
+  const lastPathnameRef = useRef(pathname);
+
   // Fetch current logged in user details
   useEffect(() => {
     async function fetchMe() {
@@ -57,7 +59,15 @@ export function AdminHeader() {
         console.error("Error fetching current user session:", err);
       }
     }
-    fetchMe();
+
+    const wasProfilePage = lastPathnameRef.current === "/admin/settings" || lastPathnameRef.current === "/employee/profile";
+    const isProfilePage = pathname === "/admin/settings" || pathname === "/employee/profile";
+
+    if (!currentUser || wasProfilePage || isProfilePage) {
+      fetchMe();
+    }
+
+    lastPathnameRef.current = pathname;
   }, [pathname]);
 
   // Click outside to close dropdown
