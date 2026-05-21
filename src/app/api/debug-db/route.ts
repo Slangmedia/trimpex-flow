@@ -37,8 +37,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let outgoingIp = "unknown";
+  try {
+    const ipRes = await fetch("https://api.ipify.org?format=json");
+    if (ipRes.ok) {
+      const ipJson = await ipRes.json();
+      outgoingIp = ipJson.ip;
+    }
+  } catch (ipErr) {
+    // Ignore
+  }
+
   const results: any = {
     timestamp: new Date().toISOString(),
+    outgoingIp,
     processEnv: {
       DATABASE_URL: obfuscateUrl(process.env.DATABASE_URL),
       PRISMA_CLIENT_ENGINE_TYPE: process.env.PRISMA_CLIENT_ENGINE_TYPE || "not_set",
