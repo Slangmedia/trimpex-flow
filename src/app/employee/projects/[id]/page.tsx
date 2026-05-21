@@ -145,7 +145,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
     
     async function fetchCurrentUser() {
       try {
-        const res = await fetch("/api/user/me");
+        const res = await fetch("/api/user/me", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           setCurrentUser(data);

@@ -31,14 +31,14 @@ export default function LoginPage() {
         setError("Invalid email or password");
         setIsLoading(false);
       } else {
-        // Fetch current user details to route based on role
-        const meRes = await fetch("/api/user/me");
+        // Fetch current user details without caching to route based on role
+        const meRes = await fetch("/api/user/me", { cache: "no-store" });
         if (meRes.ok) {
           const user = await meRes.json();
           if (user.role === "ADMIN") {
-            router.push("/admin/dashboard");
+            window.location.href = "/admin/dashboard";
           } else {
-            router.push("/employee/projects");
+            window.location.href = "/employee/projects";
           }
         } else {
           setError("Failed to retrieve user role.");

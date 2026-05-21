@@ -48,7 +48,7 @@ export function AdminHeader() {
   useEffect(() => {
     async function fetchMe() {
       try {
-        const res = await fetch("/api/user/me");
+        const res = await fetch("/api/user/me", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           setCurrentUser(data);
@@ -79,7 +79,7 @@ export function AdminHeader() {
     } catch (e) {
       console.warn("NextAuth signOut bypassed or failed:", e);
     }
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   const getInitials = (name: string) => {
