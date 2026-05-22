@@ -696,19 +696,30 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
             <div className="flex-1 min-h-[40vh] sm:min-h-0 bg-black flex items-center justify-center relative group h-full">
               {(selectedVersion?.fileUrl || detailRender?.imageUrl) ? (
                 <>
-                  {((selectedVersion ? selectedVersion.fileType : (detailRender?.fileType || detailRender?.imageUrl?.includes(".mp4"))) === "VIDEO" || (selectedVersion?.fileUrl || detailRender?.imageUrl)?.endsWith(".mp4")) ? (
-                    <video 
-                      src={selectedVersion?.fileUrl || detailRender?.imageUrl} 
-                      controls 
-                      className="max-w-full max-h-full"
-                    />
-                  ) : (
-                    <img 
-                      src={selectedVersion?.fileUrl || detailRender?.imageUrl} 
-                      alt={detailRender?.name} 
-                      className="w-full h-full object-contain" 
-                    />
-                  )}
+                  {(() => {
+                    const fileUrl = selectedVersion?.fileUrl || detailRender?.imageUrl;
+                    const fileType = selectedVersion ? selectedVersion.fileType : detailRender?.fileType;
+                    const isVideo = fileType === "VIDEO" || 
+                      (fileUrl && (
+                        fileUrl.toLowerCase().endsWith(".mp4") || 
+                        fileUrl.toLowerCase().endsWith(".webm") || 
+                        fileUrl.toLowerCase().endsWith(".ogg") || 
+                        fileUrl.toLowerCase().endsWith(".mov")
+                      ));
+                    return isVideo ? (
+                      <video 
+                        src={fileUrl} 
+                        controls 
+                        className="max-w-full max-h-full"
+                      />
+                    ) : (
+                      <img 
+                        src={fileUrl} 
+                        alt={detailRender?.name} 
+                        className="w-full h-full object-contain" 
+                      />
+                    );
+                  })()}
                   <Button
                     size="icon"
                     variant="secondary"

@@ -29,9 +29,10 @@ export async function POST(req: NextRequest) {
     const targetUrl = process.env.NEXTAUTH_URL;
     const isTargetRemote = targetUrl && !targetUrl.includes("localhost") && !targetUrl.includes("127.0.0.1");
     const requestUrl = new URL(req.url);
-    const isRequestLocal = requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1" || requestUrl.hostname.startsWith("192.168.") || requestUrl.hostname.startsWith("10.");
+    const targetHostname = targetUrl ? new URL(targetUrl).hostname : "";
+    const isRequestingProduction = requestUrl.hostname === targetHostname;
 
-    if (isDev && isTargetRemote && isRequestLocal && !devToken) {
+    if (isDev && isTargetRemote && !isRequestingProduction && !devToken) {
       const forwardUrl = `${targetUrl.replace(/\/$/, "")}/api/upload`;
       const forwardFormData = new FormData();
       forwardFormData.append("file", file);

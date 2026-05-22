@@ -218,7 +218,19 @@ export default function ApprovalQueuePage() {
                   <Card key={item.id} className="overflow-hidden hover:border-foreground/20 transition-colors flex flex-col rounded-3xl border-slate-200 shadow-sm group p-0 gap-0">
                     <div className="aspect-video bg-slate-100 relative overflow-hidden group/image cursor-pointer" onClick={() => { if (item.fileUrl) setLightboxImage(item.fileUrl); }}>
                       {item.fileUrl ? (
-                        <img src={item.fileUrl} className="w-full h-full object-cover group-hover/image:scale-105 transition-transform duration-700" alt={item.renderName} />
+                        (() => {
+                          const isVideo = item.fileType === "VIDEO" || (item.fileUrl && (
+                            item.fileUrl.toLowerCase().endsWith(".mp4") ||
+                            item.fileUrl.toLowerCase().endsWith(".webm") ||
+                            item.fileUrl.toLowerCase().endsWith(".ogg") ||
+                            item.fileUrl.toLowerCase().endsWith(".mov")
+                          ));
+                          return isVideo ? (
+                            <video src={item.fileUrl} className="w-full h-full object-cover group-hover/image:scale-105 transition-transform duration-700" muted playsInline />
+                          ) : (
+                            <img src={item.fileUrl} className="w-full h-full object-cover group-hover/image:scale-105 transition-transform duration-700" alt={item.renderName} />
+                          );
+                        })()
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-xs">NO PREVIEW</div>
                       )}
@@ -345,8 +357,22 @@ export default function ApprovalQueuePage() {
           <Button variant="ghost" size="icon" className="absolute top-10 right-10 text-white hover:bg-white/10 rounded-full h-12 w-12 z-10"
             onClick={() => { setLightboxImage(null); setZoomScale(1); }}><X className="h-6 w-6" /></Button>
           <div className="w-full h-full flex items-center justify-center overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <img src={lightboxImage} style={{ transform: `scale(${zoomScale})` }}
-              className="w-full h-full object-contain transition-transform duration-200 ease-out cursor-default" alt="Full size preview" />
+            {(() => {
+              const queueItem = queue.find(q => q.fileUrl === lightboxImage);
+              const isVideo = queueItem?.fileType === "VIDEO" || (lightboxImage && (
+                lightboxImage.toLowerCase().endsWith(".mp4") ||
+                lightboxImage.toLowerCase().endsWith(".webm") ||
+                lightboxImage.toLowerCase().endsWith(".ogg") ||
+                lightboxImage.toLowerCase().endsWith(".mov")
+              ));
+              return isVideo ? (
+                <video src={lightboxImage} controls style={{ transform: `scale(${zoomScale})` }}
+                  className="max-w-full max-h-full object-contain transition-transform duration-200 ease-out" />
+              ) : (
+                <img src={lightboxImage} style={{ transform: `scale(${zoomScale})` }}
+                  className="w-full h-full object-contain transition-transform duration-200 ease-out cursor-default" alt="Full size preview" />
+              );
+            })()}
           </div>
         </div>
       )}

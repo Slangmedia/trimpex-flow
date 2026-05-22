@@ -674,19 +674,30 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
             <div className="flex-1 min-h-[40vh] sm:min-h-0 bg-black flex items-center justify-center relative group h-full">
               {(selectedVersion?.fileUrl || selectedRender?.imageUrl) ? (
                 <>
-                  {((selectedVersion ? selectedVersion.fileType : (selectedRender?.fileType || selectedRender?.imageUrl?.includes(".mp4"))) === "VIDEO" || (selectedVersion?.fileUrl || selectedRender?.imageUrl)?.endsWith(".mp4")) ? (
-                    <video 
-                      src={selectedVersion?.fileUrl || selectedRender?.imageUrl} 
-                      controls 
-                      className="max-w-full max-h-full"
-                    />
-                  ) : (
-                    <img 
-                      src={selectedVersion?.fileUrl || selectedRender?.imageUrl} 
-                      alt={selectedRender?.name} 
-                      className="w-full h-full object-contain" 
-                    />
-                  )}
+                  {(() => {
+                    const fileUrl = selectedVersion?.fileUrl || selectedRender?.imageUrl;
+                    const fileType = selectedVersion ? selectedVersion.fileType : selectedRender?.fileType;
+                    const isVideo = fileType === "VIDEO" || 
+                      (fileUrl && (
+                        fileUrl.toLowerCase().endsWith(".mp4") || 
+                        fileUrl.toLowerCase().endsWith(".webm") || 
+                        fileUrl.toLowerCase().endsWith(".ogg") || 
+                        fileUrl.toLowerCase().endsWith(".mov")
+                      ));
+                    return isVideo ? (
+                      <video 
+                        src={fileUrl} 
+                        controls 
+                        className="max-w-full max-h-full"
+                      />
+                    ) : (
+                      <img 
+                        src={fileUrl} 
+                        alt={selectedRender?.name} 
+                        className="w-full h-full object-contain" 
+                      />
+                    );
+                  })()}
                   <Button
                     size="icon"
                     variant="secondary"
@@ -862,8 +873,25 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           <Button variant="ghost" size="icon" className="absolute top-10 right-10 text-white hover:bg-white/10 rounded-full h-12 w-12 z-10"
             onClick={() => { setLightboxImage(null); setZoomScale(1); }}><X className="h-6 w-6" /></Button>
           <div className="w-full h-full flex items-center justify-center overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <img src={lightboxImage} style={{ transform: `scale(${zoomScale})` }}
-              className="max-w-full max-h-full object-contain shadow-[0_0_100px_rgba(0,0,0,0.5)] rounded-lg transition-transform duration-200 ease-out cursor-default" alt="Full size preview" />
+            {(() => {
+              const isVideo = lightboxImage && (
+                lightboxImage.toLowerCase().endsWith(".mp4") ||
+                lightboxImage.toLowerCase().endsWith(".webm") ||
+                lightboxImage.toLowerCase().endsWith(".ogg") ||
+                lightboxImage.toLowerCase().endsWith(".mov") ||
+                project?.renderItems?.some((item: any) => 
+                  item.imageUrl === lightboxImage || 
+                  item.versions?.some((v: any) => v.file_url === lightboxImage && v.file_type === "VIDEO")
+                )
+              );
+              return isVideo ? (
+                <video src={lightboxImage} controls style={{ transform: `scale(${zoomScale})` }}
+                  className="max-w-full max-h-full object-contain shadow-[0_0_100px_rgba(0,0,0,0.5)] rounded-lg transition-transform duration-200 ease-out" />
+              ) : (
+                <img src={lightboxImage} style={{ transform: `scale(${zoomScale})` }}
+                  className="max-w-full max-h-full object-contain shadow-[0_0_100px_rgba(0,0,0,0.5)] rounded-lg transition-transform duration-200 ease-out cursor-default" alt="Full size preview" />
+              );
+            })()}
           </div>
         </div>
       )}
