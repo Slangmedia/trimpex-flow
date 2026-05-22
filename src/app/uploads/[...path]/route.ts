@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { ensureUploadsSymlink } from "@/lib/symlink";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
   try {
+    ensureUploadsSymlink();
+
     const filePathSegments = params.path;
     if (!filePathSegments || filePathSegments.length === 0) {
       return new NextResponse("File not found", { status: 404 });

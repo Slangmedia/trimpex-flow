@@ -4,6 +4,7 @@ import path from "path";
 import { existsSync, mkdirSync } from "fs";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { ensureUploadsSymlink } from "@/lib/symlink";
 
 export async function POST(req: NextRequest) {
   try {
@@ -71,6 +72,9 @@ export async function POST(req: NextRequest) {
     const dateFolder = new Date().toISOString().slice(0, 7); // e.g. "2026-05"
     const relativeUploadDir = path.join(envFolder, dateFolder);
 
+    // Ensure the uploads folder symlink is verified
+    ensureUploadsSymlink();
+
     // Ensure local upload directory exists
     const uploadDir = path.join(process.cwd(), "public", "uploads", relativeUploadDir);
     if (!existsSync(uploadDir)) {
@@ -79,24 +83,6 @@ export async function POST(req: NextRequest) {
 
     const filePath = path.join(uploadDir, filename);
     await writeFile(filePath, buffer);
-
-    // If running in Hostinger shared hosting environment, a public_html directory
-    // usually exists relative to the nodejs app root. Write a copy there so the web server
-    // (Apache/Nginx) can serve static assets directly without passing through Next.js.
-    try {
-      const publicHtmlDir = path.resolve(process.cwd(), "..", "public_html");
-      if (existsSync(publicHtmlDir)) {
-        const publicHtmlUploadsDir = path.join(publicHtmlDir, "uploads", relativeUploadDir);
-        if (!existsSync(publicHtmlUploadsDir)) {
-          mkdirSync(publicHtmlUploadsDir, { recursive: true });
-        }
-        const publicHtmlFilePath = path.join(publicHtmlUploadsDir, filename);
-        await writeFile(publicHtmlFilePath, buffer);
-        console.log(`Successfully wrote duplicate upload to public_html/uploads/${relativeUploadDir}:`, filename);
-      }
-    } catch (writeErr) {
-      console.error("Error copying file to public_html/uploads:", writeErr);
-    }
 
     // Return the public URL using forward slashes
     return NextResponse.json({ url: `/uploads/${envFolder}/${dateFolder}/${filename}` });
