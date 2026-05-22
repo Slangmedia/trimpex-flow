@@ -8,6 +8,30 @@ export async function GET(
 ) {
   try {
     const { filename } = params;
+    const { searchParams } = new URL(request.url);
+    if (searchParams.get("debug") === "Flow2026") {
+      const uploadDir = path.join(process.cwd(), "public", "uploads");
+      let dirContents: string[] = [];
+      let exists = false;
+      try {
+        exists = fs.existsSync(uploadDir);
+        if (exists) {
+          dirContents = fs.readdirSync(uploadDir);
+        }
+      } catch (e: any) {
+        dirContents = [e.message];
+      }
+      return NextResponse.json({
+        cwd: process.cwd(),
+        exists,
+        dirContents,
+        env: {
+          NEXTAUTH_URL: process.env.NEXTAUTH_URL || "NOT_SET",
+          NODE_ENV: process.env.NODE_ENV || "NOT_SET",
+        }
+      });
+    }
+
     const filePath = path.join(process.cwd(), "public", "uploads", filename);
 
     if (!fs.existsSync(filePath)) {
