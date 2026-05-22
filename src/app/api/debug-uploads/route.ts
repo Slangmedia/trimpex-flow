@@ -4,6 +4,24 @@ import path from "path";
 
 export const dynamic = "force-dynamic";
 
+function getFilesRecursively(dir: string, baseDir: string = dir): string[] {
+  let results: string[] = [];
+  if (!fs.existsSync(dir)) return results;
+  try {
+    const list = fs.readdirSync(dir);
+    for (const file of list) {
+      const filePath = path.join(dir, file);
+      const stat = fs.statSync(filePath);
+      if (stat && stat.isDirectory()) {
+        results = results.concat(getFilesRecursively(filePath, baseDir));
+      } else {
+        results.push(path.relative(baseDir, filePath));
+      }
+    }
+  } catch (e) {}
+  return results;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get("secret");
@@ -33,8 +51,7 @@ export async function GET(request: Request) {
     
     if (fs.existsSync(uploadDir)) {
       results.uploadsFolder.exists = true;
-      const files = fs.readdirSync(uploadDir);
-      results.uploadsFolder.contents = files;
+      results.uploadsFolder.contents = getFilesRecursively(uploadDir);
     }
   } catch (err: any) {
     results.uploadsFolder.error = err.message;

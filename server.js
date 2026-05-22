@@ -1,3 +1,4 @@
+process.env.TOKIO_WORKER_THREADS = "1";
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');

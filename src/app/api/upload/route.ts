@@ -65,8 +65,14 @@ export async function POST(req: NextRequest) {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const filename = `${uniqueSuffix}-${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
     
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), "public/uploads");
+    // Optimize folder structure: segregate by environment (local vs production) and date (YYYY-MM)
+    const isProd = process.env.NODE_ENV === "production";
+    const envFolder = isProd ? "production" : "local";
+    const dateFolder = new Date().toISOString().slice(0, 7); // e.g. "2026-05"
+    const relativeUploadDir = path.join(envFolder, dateFolder);
+
+    // Ensure local upload directory exists
+    const uploadDir = path.join(process.cwd(), "public", "uploads", relativeUploadDir);
     if (!existsSync(uploadDir)) {
       mkdirSync(uploadDir, { recursive: true });
     }
@@ -74,8 +80,26 @@ export async function POST(req: NextRequest) {
     const filePath = path.join(uploadDir, filename);
     await writeFile(filePath, buffer);
 
-    // Return the public URL
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    // If running in Hostinger shared hosting environment, a public_html directory
+    // usually exists relative to the nodejs app root. Write a copy there so the web server
+    // (Apache/Nginx) can serve static assets directly without passing through Next.js.
+    try {
+      const publicHtmlDir = path.resolve(process.cwd(), "..", "public_html");
+      if (existsSync(publicHtmlDir)) {
+        const publicHtmlUploadsDir = path.join(publicHtmlDir, "uploads", relativeUploadDir);
+        if (!existsSync(publicHtmlUploadsDir)) {
+          mkdirSync(publicHtmlUploadsDir, { recursive: true });
+        }
+        const publicHtmlFilePath = path.join(publicHtmlUploadsDir, filename);
+        await writeFile(publicHtmlFilePath, buffer);
+        console.log(`Successfully wrote duplicate upload to public_html/uploads/${relativeUploadDir}:`, filename);
+      }
+    } catch (writeErr) {
+      console.error("Error copying file to public_html/uploads:", writeErr);
+    }
+
+    // Return the public URL using forward slashes
+    return NextResponse.json({ url: `/uploads/${envFolder}/${dateFolder}/${filename}` });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });

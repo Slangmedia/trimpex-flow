@@ -273,8 +273,12 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const completeCount = renders.filter((r: any) => r.currentStatus === "COMPLETE").length;
   const reviewCount = renders.filter((r: any) => ["SUBMITTED", "CLIENT_PENDING", "ADMIN_REJECTED"].includes(r.currentStatus)).length;
   const revisionCount = renders.filter((r: any) => ["REVISION_REQUIRED", "REJECTED"].includes(r.currentStatus)).length;
-  const pendingAdminCount = renders.filter((r: any) => ["SUBMITTED", "ADMIN_REJECTED"].includes(r.currentStatus)).length;
-  const pendingClientCount = renders.filter((r: any) => ["CLIENT_PENDING"].includes(r.currentStatus)).length;
+
+  // Custom tab counts
+  const tabReviewCount = renders.filter((r: any) => r.currentStatus === "SUBMITTED").length;
+  const tabRevisionCount = renders.filter((r: any) => r.currentStatus === "REVISION_REQUIRED").length;
+  const tabRejectCount = renders.filter((r: any) => ["REJECTED", "ADMIN_REJECTED"].includes(r.currentStatus)).length;
+  const tabPendingClientCount = renders.filter((r: any) => r.currentStatus === "CLIENT_PENDING").length;
 
   const renderTable = (filteredRenders: any[]) => (
     <div className="w-full overflow-x-auto">
@@ -510,13 +514,21 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       <Tabs defaultValue="all" className={cn("w-full transition-all duration-300", isTableMaximized ? "fixed inset-0 z-[100] bg-background p-0 overflow-auto" : "")}>
         <div className={cn("bg-card border-b shadow-sm overflow-hidden w-full transition-all border-x-0", isTableMaximized && "h-full")}>
           <div className="px-8 lg:px-12 py-5 flex flex-col md:flex-row justify-between items-center gap-4 border-b bg-muted/20">
-            <div className="flex items-center gap-4">
-              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground">Asset Management</h2>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setIsTableMaximized(!isTableMaximized)}>
+            <div className="flex items-center gap-4 w-full md:w-auto flex-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full shrink-0" onClick={() => setIsTableMaximized(!isTableMaximized)}>
                 {isTableMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </Button>
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input 
+                  placeholder="Filter Name..." 
+                  className="pl-9 h-9 bg-background border-border rounded-lg text-xs" 
+                  value={skuSearchQuery}
+                  onChange={(e) => setSkuSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto shrink-0 justify-end">
               <TabsList className="bg-muted/50 border border-border rounded-xl p-1 h-auto gap-1">
                 <TabsTrigger
                   value="all"
@@ -536,22 +548,48 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                     data-[active]:bg-black data-[active]:text-white data-[active]:shadow-sm data-[active]:font-semibold"
                 >
                   Review
-                  {pendingAdminCount > 0 && (
+                  {tabReviewCount > 0 && (
                     <Badge className="ml-2 bg-blue-100 text-blue-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
-                      {pendingAdminCount}
+                      {tabReviewCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="revision"
+                  className="group rounded-lg px-4 py-2 text-xs font-semibold text-muted-foreground transition-all
+                    hover:bg-background hover:text-amber-600 hover:shadow-sm
+                    data-[active]:bg-black data-[active]:text-white data-[active]:shadow-sm data-[active]:font-semibold"
+                >
+                  Revision
+                  {tabRevisionCount > 0 && (
+                    <Badge className="ml-2 bg-amber-100 text-amber-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
+                      {tabRevisionCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="reject"
+                  className="group rounded-lg px-4 py-2 text-xs font-semibold text-muted-foreground transition-all
+                    hover:bg-background hover:text-rose-600 hover:shadow-sm
+                    data-[active]:bg-black data-[active]:text-white data-[active]:shadow-sm data-[active]:font-semibold"
+                >
+                  Reject
+                  {tabRejectCount > 0 && (
+                    <Badge className="ml-2 bg-rose-100 text-rose-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
+                      {tabRejectCount}
                     </Badge>
                   )}
                 </TabsTrigger>
                 <TabsTrigger
                   value="client-pending"
                   className="group rounded-lg px-4 py-2 text-xs font-semibold text-muted-foreground transition-all
-                    hover:bg-background hover:text-amber-600 hover:shadow-sm
+                    hover:bg-background hover:text-indigo-600 hover:shadow-sm
                     data-[active]:bg-black data-[active]:text-white data-[active]:shadow-sm data-[active]:font-semibold"
                 >
                   Pending
-                  {pendingClientCount > 0 && (
-                    <Badge className="ml-2 bg-amber-100 text-amber-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
-                      {pendingClientCount}
+                  {tabPendingClientCount > 0 && (
+                    <Badge className="ml-2 bg-indigo-100 text-indigo-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
+                      {tabPendingClientCount}
                     </Badge>
                   )}
                 </TabsTrigger>
@@ -562,9 +600,11 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                     data-[active]:bg-black data-[active]:text-white data-[active]:shadow-sm data-[active]:font-semibold"
                 >
                   Done
-                  <Badge variant="secondary" className="ml-2 bg-emerald-100 text-emerald-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
-                    {completeCount}
-                  </Badge>
+                  {completeCount > 0 && (
+                    <Badge variant="secondary" className="ml-2 bg-emerald-100 text-emerald-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
+                      {completeCount}
+                    </Badge>
+                  )}
                 </TabsTrigger>
               </TabsList>
               
@@ -590,29 +630,25 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                   <LayoutGrid className="h-4 w-4" />
                 </Button>
               </div>
-
-              <div className="relative flex-1 md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input 
-                  placeholder="Filter Name..." 
-                  className="pl-9 h-9 bg-background border-border rounded-lg text-xs" 
-                  value={skuSearchQuery}
-                  onChange={(e) => setSkuSearchQuery(e.target.value)}
-                />
-              </div>
             </div>
           </div>
           <TabsContent value="all" className="mt-0 outline-none">
             {renderContent(renders)}
           </TabsContent>
           <TabsContent value="pending-review" className="mt-0 outline-none">
-            {renderContent(renders.filter((r: any) => ["SUBMITTED", "ADMIN_REJECTED"].includes(r.currentStatus)))}
+            {renderContent(renders.filter((r: any) => r.currentStatus === "SUBMITTED"))}
+          </TabsContent>
+          <TabsContent value="revision" className="mt-0 outline-none">
+            {renderContent(renders.filter((r: any) => r.currentStatus === "REVISION_REQUIRED"))}
+          </TabsContent>
+          <TabsContent value="reject" className="mt-0 outline-none">
+            {renderContent(renders.filter((r: any) => ["REJECTED", "ADMIN_REJECTED"].includes(r.currentStatus)))}
           </TabsContent>
           <TabsContent value="client-pending" className="mt-0 outline-none">
-            {renderContent(renders.filter((r: any) => ["CLIENT_PENDING"].includes(r.currentStatus)))}
+            {renderContent(renders.filter((r: any) => r.currentStatus === "CLIENT_PENDING"))}
           </TabsContent>
           <TabsContent value="complete" className="mt-0 outline-none">
-            {renderContent(renders.filter((r: any) => ["COMPLETE"].includes(r.currentStatus)))}
+            {renderContent(renders.filter((r: any) => r.currentStatus === "COMPLETE"))}
           </TabsContent>
         </div>
       </Tabs>
