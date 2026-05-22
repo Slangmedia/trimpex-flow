@@ -80,9 +80,9 @@ export function RenderManagementPanel({ renderItemId, userRole }: RenderManageme
   const handleDecision = async (action: "APPROVE" | "REJECT" | "NEEDS_CHANGES" | "UNDO") => {
     if (!activeVersion) return;
 
-    // Validate that feedback note is provided for reject or needs changes actions
-    if ((action === "REJECT" || action === "NEEDS_CHANGES") && !note.trim()) {
-      alert(`Please write a feedback message explaining why this item ${action === "REJECT" ? "is rejected" : "needs changes"}.`);
+    // Validate that feedback note is provided for needs changes actions (optional for reject)
+    if (action === "NEEDS_CHANGES" && !note.trim()) {
+      alert("Please write a feedback message explaining why this item needs changes.");
       return;
     }
 

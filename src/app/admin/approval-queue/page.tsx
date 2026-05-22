@@ -302,12 +302,12 @@ export default function ApprovalQueuePage() {
           <DialogHeader>
             <DialogTitle>Reject Render</DialogTitle>
             <DialogDescription>
-              Provide an note for the employee explaining what needs adjustment.
+              Provide a note for the employee explaining what needs adjustment (optional).
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Textarea 
-              placeholder="e.g. Lighting is too dark, please adjust exposure."
+              placeholder="e.g. Lighting is too dark, please adjust exposure (optional)."
               className="min-h-[100px] resize-none"
               value={rejectNote}
               onChange={(e) => setRejectNote(e.target.value)}
@@ -319,7 +319,7 @@ export default function ApprovalQueuePage() {
               variant="outline" 
               className="border-destructive text-destructive hover:bg-destructive/10"
               onClick={handleConfirmReject}
-              disabled={isSubmitting || !rejectNote.trim()}
+              disabled={isSubmitting}
             >
               {isSubmitting ? "Rejecting..." : "Confirm Rejection"}
             </Button>

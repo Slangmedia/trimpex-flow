@@ -283,7 +283,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
           return (
             <Card 
               key={render.id} 
-              className="overflow-hidden hover:border-foreground/20 transition-colors flex flex-col rounded-2xl border-muted-foreground/20 shadow-sm cursor-pointer p-0 gap-0"
+              className="overflow-hidden hover:border-foreground/20 transition-colors flex flex-col rounded-2xl border-muted-foreground/20 shadow-sm cursor-pointer p-0 gap-0 h-full"
               onClick={() => setDetailRender(render)}
             >
               <div className="aspect-[4/3] bg-muted relative overflow-hidden">
@@ -305,25 +305,16 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 </div>
                 
                 <div className="mt-auto">
-                  <StatusPill status={status} className="w-full justify-start py-2.5 px-4 text-[13px] rounded-lg" />
-                  
-                  {status === "ADMIN_REJECTED" && render.adminNote && (
-                    <div className="mt-3 p-3 bg-status-internal rounded-lg border border-border text-xs text-status-internal-foreground">
-                      <span className="font-semibold block mb-1">Admin Note:</span>
-                      {render.adminNote}
-                    </div>
-                  )}
-                  
-                  {(status === "REJECTED" || status === "REVISION_REQUIRED") && render.clientFeedback && (
-                    <div className="mt-3 p-3 bg-status-rejected/20 rounded-lg border border-status-rejected/30 text-xs text-status-rejected-foreground">
-                      <span className="font-semibold block mb-1">Client Feedback:</span>
-                      {render.clientFeedback}
-                    </div>
-                  )}
+                  <StatusPill 
+                    status={status} 
+                    adminAction={render.adminAction}
+                    clientAction={render.clientAction}
+                    className="w-full justify-start py-2.5 px-4 text-[13px] rounded-lg" 
+                  />
                 </div>
               </CardContent>
               {status === "REVISION_REQUIRED" && (
-                <CardFooter className="p-5 pt-0">
+                <CardFooter className="p-5">
                   <Button 
                     className="w-full bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
                     variant="default"
@@ -348,11 +339,11 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
     );
   }
 
-  const allCount = renders.length;
   const submittedCount = renders.filter(r => (r.currentStatus || r.status) === "SUBMITTED").length;
+  const revisionCount = renders.filter(r => (r.currentStatus || r.status) === "REVISION_REQUIRED").length;
   const clientPendingCount = renders.filter(r => (r.currentStatus || r.status) === "CLIENT_PENDING").length;
-  const actionNeededCount = renders.filter(r => ["REJECTED", "ADMIN_REJECTED", "REVISION_REQUIRED"].includes(r.currentStatus || r.status)).length;
-  const completeCount = renders.filter(r => (r.currentStatus || r.status) === "COMPLETE").length;
+  const approvedCount = renders.filter(r => (r.currentStatus || r.status) === "COMPLETE").length;
+  const rejectedCount = renders.filter(r => ["REJECTED", "ADMIN_REJECTED"].includes(r.currentStatus || r.status)).length;
 
   return (
     <div className="space-y-6">
@@ -487,20 +478,9 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
       </div>
 
       <div className="pt-4">
-        <Tabs defaultValue="all" className="w-full">
+        <Tabs defaultValue="submitted" className="w-full">
           <div className="bg-background pt-2 pb-4 z-10 border-b border-border mb-6">
             <TabsList className="w-full sm:w-auto grid grid-cols-5 sm:flex bg-muted/50 border border-border rounded-xl p-1 h-auto gap-1">
-              <TabsTrigger
-                value="all"
-                className="group rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-all
-                  hover:bg-background hover:text-foreground hover:shadow-sm
-                  data-[active]:bg-black data-[active]:text-white data-[active]:shadow-sm data-[active]:font-semibold"
-              >
-                All
-                <Badge variant="secondary" className="ml-2 bg-muted text-muted-foreground border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
-                  {allCount}
-                </Badge>
-              </TabsTrigger>
               <TabsTrigger
                 value="submitted"
                 className="group rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-all
@@ -515,28 +495,28 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 )}
               </TabsTrigger>
               <TabsTrigger
-                value="client-pending"
+                value="revision"
                 className="group rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-all
                   hover:bg-background hover:text-amber-600 hover:shadow-sm
                   data-[active]:bg-black data-[active]:text-white data-[active]:shadow-sm data-[active]:font-semibold"
               >
-                Pending
-                {clientPendingCount > 0 && (
+                Revision
+                {revisionCount > 0 && (
                   <Badge className="ml-2 bg-amber-100 text-amber-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
-                    {clientPendingCount}
+                    {revisionCount}
                   </Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger
-                value="action-needed"
+                value="client-pending"
                 className="group rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-all
-                  hover:bg-background hover:text-rose-600 hover:shadow-sm
+                  hover:bg-background hover:text-indigo-600 hover:shadow-sm
                   data-[active]:bg-black data-[active]:text-white data-[active]:shadow-sm data-[active]:font-semibold"
               >
-                Action
-                {actionNeededCount > 0 && (
-                  <Badge className="ml-2 bg-rose-100 text-rose-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
-                    {actionNeededCount}
+                Pending
+                {clientPendingCount > 0 && (
+                  <Badge className="ml-2 bg-indigo-100 text-indigo-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
+                    {clientPendingCount}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -546,32 +526,45 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                   hover:bg-background hover:text-emerald-600 hover:shadow-sm
                   data-[active]:bg-black data-[active]:text-white data-[active]:shadow-sm data-[active]:font-semibold"
               >
-                Complete
+                Approved
                 <Badge variant="secondary" className="ml-2 bg-emerald-100 text-emerald-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
-                  {completeCount}
+                  {approvedCount}
                 </Badge>
+              </TabsTrigger>
+              <TabsTrigger
+                value="rejected"
+                className="group rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-all
+                  hover:bg-background hover:text-rose-600 hover:shadow-sm
+                  data-[active]:bg-black data-[active]:text-white data-[active]:shadow-sm data-[active]:font-semibold"
+              >
+                Rejected
+                {rejectedCount > 0 && (
+                  <Badge className="ml-2 bg-rose-100 text-rose-700 border-transparent px-1.5 py-0 min-w-5 group-data-[active]:bg-white/20 group-data-[active]:text-white">
+                    {rejectedCount}
+                  </Badge>
+                )}
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="all" className="mt-0">
-            {renderGrid(renders)}
-          </TabsContent>
-
           <TabsContent value="submitted" className="mt-0">
             {renderGrid(renders.filter(r => (r.currentStatus || r.status) === "SUBMITTED"))}
+          </TabsContent>
+
+          <TabsContent value="revision" className="mt-0">
+            {renderGrid(renders.filter(r => (r.currentStatus || r.status) === "REVISION_REQUIRED"))}
           </TabsContent>
 
           <TabsContent value="client-pending" className="mt-0">
             {renderGrid(renders.filter(r => (r.currentStatus || r.status) === "CLIENT_PENDING"))}
           </TabsContent>
 
-          <TabsContent value="action-needed" className="mt-0">
-            {renderGrid(renders.filter(r => ["REJECTED", "ADMIN_REJECTED", "REVISION_REQUIRED"].includes(r.currentStatus || r.status)))}
-          </TabsContent>
-
           <TabsContent value="complete" className="mt-0">
             {renderGrid(renders.filter(r => (r.currentStatus || r.status) === "COMPLETE"))}
+          </TabsContent>
+
+          <TabsContent value="rejected" className="mt-0">
+            {renderGrid(renders.filter(r => ["REJECTED", "ADMIN_REJECTED"].includes(r.currentStatus || r.status)))}
           </TabsContent>
         </Tabs>
       </div>
@@ -687,7 +680,14 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 V{selectedVersion ? selectedVersion.versionNumber : (detailRender?.currentVersion || detailRender?.version || 1)}
               </Badge>
               <h2 className="text-lg font-semibold truncate max-w-[200px] sm:max-w-none">{detailRender?.name}</h2>
-              {detailRender && <StatusPill status={detailRender.currentStatus || detailRender.status || "SUBMITTED"} className="hidden sm:inline-flex" />}
+              {detailRender && (
+                <StatusPill 
+                  status={detailRender.currentStatus || detailRender.status || "SUBMITTED"} 
+                  adminAction={detailRender.adminAction}
+                  clientAction={detailRender.clientAction}
+                  className="hidden sm:inline-flex" 
+                />
+              )}
             </div>
           </div>
           
@@ -766,6 +766,8 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                               <div className="font-semibold text-emerald-600 font-medium">✓ Admin Approved</div>
                             ) : v.adminAction === "REJECTED" ? (
                               <div className="font-semibold text-rose-600 font-medium">✕ Admin Rejected</div>
+                            ) : v.adminAction === "NEEDS_CHANGES" ? (
+                              <div className="font-semibold text-amber-600 font-medium">⟳ Admin Needs Changes</div>
                             ) : (
                               <div className="font-semibold text-amber-600 font-medium">Pending Admin Review</div>
                             )}

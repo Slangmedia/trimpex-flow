@@ -58,6 +58,8 @@ export async function GET(
         imageUrl: currentVersion?.file_url || "",
         clientFeedback: currentVersion?.client_feedback || "",
         adminNote: currentVersion?.admin_note || "",
+        adminAction: currentVersion?.admin_action || null,
+        clientAction: currentVersion?.client_action || null,
         currentVersionId: currentVersion?.id || "",
         versionsHistory: item.versions.map((v) => ({
           id: v.id,

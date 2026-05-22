@@ -83,9 +83,9 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const handleAdminReview = async (action: "APPROVE" | "REJECT" | "NEEDS_CHANGES" | "UNDO") => {
     if (!selectedRender) return;
 
-    // Validate that feedback note is provided for reject or needs changes actions
-    if ((action === "REJECT" || action === "NEEDS_CHANGES") && !adminFeedback.trim()) {
-      alert(`Please write a feedback message explaining why this item ${action === "REJECT" ? "is rejected" : "needs changes"}.`);
+    // Validate that feedback note is provided for needs changes actions (optional for reject)
+    if (action === "NEEDS_CHANGES" && !adminFeedback.trim()) {
+      alert("Please write a feedback message explaining why this item needs changes.");
       return;
     }
 
@@ -335,7 +335,11 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <span className="text-[10px] font-black opacity-40">V{render.currentVersion}</span>
               </TableCell>
               <TableCell onClick={() => openRenderDetail(render)}>
-                <StatusPill status={render.currentStatus as RenderStatus} />
+                <StatusPill 
+                  status={render.currentStatus as RenderStatus} 
+                  adminAction={render.adminAction}
+                  clientAction={render.clientAction}
+                />
               </TableCell>
               <TableCell onClick={() => openRenderDetail(render)}>
                 <div className="flex items-center gap-2">
@@ -388,7 +392,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           return (
             <Card 
               key={render.id} 
-              className="overflow-hidden hover:border-foreground/20 transition-colors flex flex-col rounded-2xl border-muted-foreground/20 shadow-sm cursor-pointer p-0 gap-0"
+              className="overflow-hidden hover:border-foreground/20 transition-colors flex flex-col rounded-2xl border-muted-foreground/20 shadow-sm cursor-pointer p-0 gap-0 h-full"
               onClick={() => openRenderDetail(render)}
             >
               <div className="aspect-[4/3] bg-muted relative overflow-hidden">
@@ -410,21 +414,12 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 </div>
                 
                 <div className="mt-auto">
-                  <StatusPill status={status as RenderStatus} className="w-full justify-start py-2.5 px-4 text-[13px] rounded-lg" />
-                  
-                  {status === "ADMIN_REJECTED" && render.adminNote && (
-                    <div className="mt-3 p-3 bg-status-internal rounded-lg border border-border text-xs text-status-internal-foreground">
-                      <span className="font-semibold block mb-1">Admin Note:</span>
-                      {render.adminNote}
-                    </div>
-                  )}
-                  
-                  {(status === "REJECTED" || status === "REVISION_REQUIRED") && render.clientFeedback && (
-                    <div className="mt-3 p-3 bg-status-rejected/20 rounded-lg border border-status-rejected/30 text-xs text-status-rejected-foreground">
-                      <span className="font-semibold block mb-1">Client Feedback:</span>
-                      {render.clientFeedback}
-                    </div>
-                  )}
+                  <StatusPill 
+                    status={status as RenderStatus} 
+                    adminAction={render.adminAction}
+                    clientAction={render.clientAction}
+                    className="w-full justify-start py-2.5 px-4 text-[13px] rounded-lg" 
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -663,7 +658,14 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 V{selectedVersion ? selectedVersion.versionNumber : (selectedRender?.currentVersion || selectedRender?.version || 1)}
               </Badge>
               <h2 className="text-lg font-semibold truncate max-w-[200px] sm:max-w-none">{selectedRender?.name}</h2>
-              {selectedRender && <StatusPill status={selectedRender.currentStatus || selectedRender.status || "SUBMITTED"} className="hidden sm:inline-flex" />}
+              {selectedRender && (
+                <StatusPill 
+                  status={selectedRender.currentStatus || selectedRender.status || "SUBMITTED"} 
+                  adminAction={selectedRender.adminAction}
+                  clientAction={selectedRender.clientAction}
+                  className="hidden sm:inline-flex" 
+                />
+              )}
             </div>
           </div>
           
@@ -714,7 +716,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                       <Check className="w-4 h-4 text-primary" /> Admin Review
                     </h3>
                     <textarea
-                      placeholder="Add feedback / internal note..."
+                      placeholder="Add feedback / internal note (optional)..."
                       value={adminFeedback}
                       onChange={(e) => setAdminFeedback(e.target.value)}
                       disabled={isSubmittingReview}

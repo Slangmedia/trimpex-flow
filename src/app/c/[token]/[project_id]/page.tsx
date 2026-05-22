@@ -159,7 +159,7 @@ export default function ClientRenderGallery({ params }: { params: { token: strin
   const renderCard = (render: typeof renders[0]) => (
     <Card 
       key={render.id} 
-      className="flex flex-col overflow-hidden transition-all p-0 pt-0 pb-0 cursor-pointer hover:border-foreground/20 group"
+      className="flex flex-col overflow-hidden transition-all p-0 pt-0 pb-0 cursor-pointer hover:border-foreground/20 group h-full"
       onClick={() => setSelectedRender(render)}
     >
       <div className="aspect-[4/3] bg-muted relative border-b border-border overflow-hidden">
@@ -210,11 +210,6 @@ export default function ClientRenderGallery({ params }: { params: { token: strin
         <div className="mt-auto">
           <div className="flex flex-col gap-2">
             <StatusPill status={render.status} />
-            {render.clientFeedback && (
-              <p className="text-xs italic text-muted-foreground line-clamp-2 mt-1 border-l-2 border-border pl-2">
-                "{render.clientFeedback}"
-              </p>
-            )}
           </div>
         </div>
       </CardContent>
