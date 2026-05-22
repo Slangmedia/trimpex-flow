@@ -75,16 +75,42 @@ export async function PATCH(
     }
 
     // Update status based on admin action
-    const newStatus = action === "APPROVE" ? "CLIENT_PENDING" : "ADMIN_REJECTED";
-    const adminAction = action === "APPROVE" ? "APPROVED" : "REJECTED";
+    let newStatus: "CLIENT_PENDING" | "REVISION_REQUIRED" | "ADMIN_REJECTED" | "SUBMITTED";
+    let adminAction: "APPROVED" | "NEEDS_CHANGES" | "REJECTED" | null = null;
+    let adminReviewedAt: Date | null = null;
+    let adminNote: string | null = null;
+
+    if (action === "APPROVE") {
+      newStatus = "CLIENT_PENDING";
+      adminAction = "APPROVED";
+      adminReviewedAt = new Date();
+      adminNote = note;
+    } else if (action === "NEEDS_CHANGES") {
+      newStatus = "REVISION_REQUIRED";
+      adminAction = "NEEDS_CHANGES";
+      adminReviewedAt = new Date();
+      adminNote = note;
+    } else if (action === "REJECT") {
+      newStatus = "ADMIN_REJECTED";
+      adminAction = "REJECTED";
+      adminReviewedAt = new Date();
+      adminNote = note;
+    } else if (action === "UNDO") {
+      newStatus = "SUBMITTED";
+      adminAction = null;
+      adminReviewedAt = null;
+      adminNote = null;
+    } else {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
 
     // 1. Update the version review details
     await prisma.renderVersion.update({
       where: { id: versionId },
       data: {
-        admin_reviewed_at: new Date(),
+        admin_reviewed_at: adminReviewedAt,
         admin_action: adminAction,
-        admin_note: note,
+        admin_note: adminNote,
       },
     });
 

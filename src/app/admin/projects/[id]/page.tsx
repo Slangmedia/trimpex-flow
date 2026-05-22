@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -22,7 +22,8 @@ import {
   UploadCloud,
   LayoutGrid,
   List,
-  Pencil
+  Pencil,
+  Loader2
 } from "lucide-react";
 import { useHeaderStore } from "@/lib/store/headerStore";
 import { Button } from "@/components/ui/button";
@@ -76,9 +77,18 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const [skuSearchQuery, setSkuSearchQuery] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAdminReview = async (action: "APPROVE" | "REJECT") => {
+  const handleAdminReview = async (action: "APPROVE" | "REJECT" | "NEEDS_CHANGES" | "UNDO") => {
     if (!selectedRender) return;
+
+    // Validate that feedback note is provided for reject or needs changes actions
+    if ((action === "REJECT" || action === "NEEDS_CHANGES") && !adminFeedback.trim()) {
+      alert(`Please write a feedback message explaining why this item ${action === "REJECT" ? "is rejected" : "needs changes"}.`);
+      return;
+    }
+
     setIsSubmittingReview(true);
     try {
       const res = await fetch(`/api/renders/${selectedRender.id}`, {
@@ -88,7 +98,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         },
         body: JSON.stringify({
           action,
-          note: adminFeedback,
+          note: action === "UNDO" ? "" : adminFeedback,
           versionId: selectedRender.currentVersionId,
         }),
       });
@@ -173,6 +183,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
     let fileUrl = "";
     let fileType = "IMAGE";
+    setIsUploading(true);
 
     try {
       if (selectedFile) {
@@ -224,6 +235,8 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     } catch (err) {
       console.error("Error adding render:", err);
       alert("An error occurred while adding the render.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -671,23 +684,56 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                       disabled={isSubmittingReview}
                       className="w-full min-h-[80px] bg-background border rounded-lg p-3 text-xs outline-none focus:ring-2 focus:ring-primary/10 transition-all resize-none"
                     />
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                       <Button 
-                        className="flex-1 h-9 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white"
+                        className="w-full h-9 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white"
                         onClick={() => handleAdminReview("APPROVE")}
                         disabled={isSubmittingReview}
                       >
                         {isSubmittingReview ? "Processing..." : "Approve"}
                       </Button>
-                      <Button 
-                        variant="destructive" 
-                        className="flex-1 h-9 text-xs font-semibold rounded-lg text-white"
-                        onClick={() => handleAdminReview("REJECT")}
-                        disabled={isSubmittingReview}
-                      >
-                        {isSubmittingReview ? "Processing..." : "Reject"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          className="flex-1 h-9 text-xs font-semibold bg-amber-500 hover:bg-amber-600 rounded-lg text-white"
+                          onClick={() => handleAdminReview("NEEDS_CHANGES")}
+                          disabled={isSubmittingReview}
+                        >
+                          {isSubmittingReview ? "Processing..." : "Needs Changes"}
+                        </Button>
+                        <Button 
+                          className="flex-1 h-9 text-xs font-semibold bg-rose-600 hover:bg-rose-700 rounded-lg text-white"
+                          onClick={() => handleAdminReview("REJECT")}
+                          disabled={isSubmittingReview}
+                        >
+                          {isSubmittingReview ? "Processing..." : "Reject"}
+                        </Button>
+                      </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Admin Undo Action Area */}
+                {(selectedRender?.currentStatus === "ADMIN_REJECTED" || selectedRender?.currentStatus === "REVISION_REQUIRED") && (
+                  <div className="space-y-4 p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-amber-600">
+                        <RotateCcw className="w-4 h-4" /> Review Decision Made
+                      </h3>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      This item is marked as{" "}
+                      <span className="font-bold text-foreground animate-pulse">
+                        {selectedRender.currentStatus === "ADMIN_REJECTED" ? "Rejected" : "Needs Changes"}
+                      </span>
+                      . You can undo this decision to reset the item back to submitted and review it again.
+                    </p>
+                    <Button 
+                      className="w-full h-9 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg flex items-center justify-center gap-2"
+                      onClick={() => handleAdminReview("UNDO")}
+                      disabled={isSubmittingReview}
+                    >
+                      {isSubmittingReview ? "Processing..." : "Undo Review Decision"}
+                    </Button>
                   </div>
                 )}
 
@@ -727,6 +773,8 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                                 <div className="font-semibold text-emerald-600 font-medium">✓ Admin Approved</div>
                               ) : v.adminAction === "REJECTED" ? (
                                 <div className="font-semibold text-rose-600 font-medium">✕ Admin Rejected</div>
+                              ) : v.adminAction === "NEEDS_CHANGES" ? (
+                                <div className="font-semibold text-amber-600 font-medium">⟳ Admin Needs Changes</div>
                               ) : (
                                 <div className="font-semibold text-amber-600 font-medium">Pending Admin Review</div>
                               )}
@@ -792,7 +840,13 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           <form onSubmit={handleAddRender} className="space-y-6 py-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Render Name *</label>
-              <Input placeholder="e.g. Living Room Front View" value={newRenderName} onChange={(e) => setNewRenderName(e.target.value)} required />
+              <Input 
+                placeholder="e.g. Living Room Front View" 
+                value={newRenderName} 
+                onChange={(e) => setNewRenderName(e.target.value)} 
+                required 
+                disabled={isUploading}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Type *</label>
@@ -801,6 +855,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 value={newRenderType}
                 onChange={(e) => setNewRenderType(e.target.value)}
                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isUploading}
               >
                 <option value="" disabled>Select type...</option>
                 <option value="Full View">Full View</option>
@@ -810,19 +865,31 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">File Upload *</label>
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                className="hidden" 
+                accept="image/*,video/*"
+                onChange={handleFileChange}
+                disabled={isUploading}
+              />
               <div 
-                className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors relative"
-                onClick={() => document.getElementById("admin-file-upload")?.click()}
+                className={`border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-center transition-colors relative ${
+                  isUploading ? "bg-muted/30 cursor-not-allowed" : "cursor-pointer hover:bg-muted/50"
+                }`}
+                onClick={() => {
+                  if (!isUploading) {
+                    fileInputRef.current?.click();
+                  }
+                }}
               >
-                <input 
-                  type="file" 
-                  id="admin-file-upload" 
-                  className="hidden" 
-                  accept="image/*,video/*"
-                  onChange={handleFileChange}
-                  required={!selectedFile}
-                />
-                {selectedFile ? (
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-8 w-8 text-black animate-spin mb-4" />
+                    <p className="text-sm font-bold mb-1 text-black">Uploading Render...</p>
+                    <p className="text-xs text-muted-foreground">Please wait while the asset is being uploaded securely</p>
+                  </>
+                ) : selectedFile ? (
                   <div className="space-y-2">
                     <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto" />
                     <p className="text-sm font-bold text-emerald-600">Selected: {selectedFile.name}</p>
@@ -831,15 +898,35 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 ) : (
                   <>
                     <UploadCloud className="h-8 w-8 text-muted-foreground mb-4" />
-                    <p className="text-sm font-medium mb-1">Click to upload or drag and drop</p>
+                    <p className="text-sm font-medium mb-1">Click to upload render</p>
                     <p className="text-xs text-muted-foreground">JPG, PNG, WEBP, MP4 up to 100MB</p>
                   </>
                 )}
               </div>
             </div>
             <div className="pt-4 flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setIsUploadSheetOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">Add Render</Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsUploadSheetOpen(false)}
+                disabled={isUploading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={isUploading || !selectedFile}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  "Add Render"
+                )}
+              </Button>
             </div>
           </form>
         </SheetContent>

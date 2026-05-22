@@ -8,7 +8,8 @@ import {
   Upload, 
   FileVideo,
   Clock,
-  User
+  User,
+  RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -29,7 +30,7 @@ interface Version {
   file_type: "IMAGE" | "VIDEO";
   submitted_at: string;
   is_current_version: boolean;
-  admin_action: "APPROVED" | "REJECTED" | null;
+  admin_action: "APPROVED" | "REJECTED" | "NEEDS_CHANGES" | null;
   admin_note: string | null;
   submittedBy: {
     name: string;
@@ -76,8 +77,15 @@ export function RenderManagementPanel({ renderItemId, userRole }: RenderManageme
     fetchData();
   }, [renderItemId]);
 
-  const handleDecision = async (action: "APPROVE" | "REJECT") => {
+  const handleDecision = async (action: "APPROVE" | "REJECT" | "NEEDS_CHANGES" | "UNDO") => {
     if (!activeVersion) return;
+
+    // Validate that feedback note is provided for reject or needs changes actions
+    if ((action === "REJECT" || action === "NEEDS_CHANGES") && !note.trim()) {
+      alert(`Please write a feedback message explaining why this item ${action === "REJECT" ? "is rejected" : "needs changes"}.`);
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const res = await fetch(`/api/renders/${renderItemId}`, {
@@ -85,7 +93,7 @@ export function RenderManagementPanel({ renderItemId, userRole }: RenderManageme
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
-          note,
+          note: action === "UNDO" ? "" : note,
           versionId: activeVersion.id,
         }),
       });
@@ -186,28 +194,57 @@ export function RenderManagementPanel({ renderItemId, userRole }: RenderManageme
                   <Button 
                     onClick={() => handleDecision("APPROVE")}
                     disabled={isProcessing}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 text-xs px-2"
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    Approve & Send to Client
+                    Approve
                   </Button>
                   <Button 
-                    variant="destructive"
+                    onClick={() => handleDecision("NEEDS_CHANGES")}
+                    disabled={isProcessing}
+                    className="flex-1 bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 text-xs px-2"
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    Needs Changes
+                  </Button>
+                  <Button 
                     onClick={() => handleDecision("REJECT")}
                     disabled={isProcessing}
-                    className="flex-1 shadow-lg shadow-red-600/20"
+                    className="flex-1 bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 text-xs px-2"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
-                    Reject Revision
+                    Reject
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* ADMIN UNDO PANEL */}
+            {userRole === "ADMIN" && (data.current_status === "ADMIN_REJECTED" || data.current_status === "REVISION_REQUIRED") && (
+              <div className="p-6 bg-amber-500/10 border-t border-amber-500/20 text-amber-900 dark:text-amber-200">
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-amber-700">
+                  <RotateCcw className="w-4 h-4 animate-spin-reverse" />
+                  Review Decision Made (V{activeVersion.version_number})
+                </h4>
+                <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                  This item is marked as <span className="font-bold text-foreground">{data.current_status === "ADMIN_REJECTED" ? "Rejected" : "Needs Changes"}</span>.
+                  You can undo this decision to reset the item status back to submitted and review it again.
+                </p>
+                <Button 
+                  onClick={() => handleDecision("UNDO")}
+                  disabled={isProcessing}
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/20 text-xs px-2 flex items-center justify-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Undo Review Decision
+                </Button>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* UPLOADER SECTION (Always visible for Employees, or after rejection) */}
-        {(userRole === "EMPLOYEE" || data.current_status === "ADMIN_REJECTED") && (
+        {/* UPLOADER SECTION (Only visible for Employees, but NOT if rejected/complete) */}
+        {userRole === "EMPLOYEE" && !["ADMIN_REJECTED", "REJECTED", "COMPLETE"].includes(data.current_status) && (
           <div className="space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2 px-2">
               <Upload className="w-5 h-5" />
@@ -268,6 +305,7 @@ export function RenderManagementPanel({ renderItemId, userRole }: RenderManageme
                       <div className="flex justify-between items-start">
                         <span className="text-sm font-bold">Version {v.version_number}</span>
                         {v.admin_action === "APPROVED" && <CheckCircle className="w-3 h-3 text-emerald-500" />}
+                        {v.admin_action === "NEEDS_CHANGES" && <Clock className="w-3 h-3 text-amber-500" />}
                         {v.admin_action === "REJECTED" && <XCircle className="w-3 h-3 text-red-500" />}
                       </div>
                       <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">

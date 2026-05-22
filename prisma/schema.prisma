@@ -156,6 +156,7 @@ enum FileType {
 enum AdminAction {
   APPROVED
   REJECTED
+  NEEDS_CHANGES
 }
 
 enum ClientAction {

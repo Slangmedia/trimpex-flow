@@ -22,8 +22,8 @@ export async function POST(
       return NextResponse.json({ error: "Version ID is required" }, { status: 400 });
     }
 
-    if (action !== "APPROVE" && action !== "REJECT") {
-      return NextResponse.json({ error: "Invalid action. Must be APPROVE or REJECT" }, { status: 400 });
+    if (action !== "APPROVE" && action !== "REJECT" && action !== "NEEDS_CHANGES") {
+      return NextResponse.json({ error: "Invalid action. Must be APPROVE, REJECT or NEEDS_CHANGES" }, { status: 400 });
     }
 
     // 1. Fetch the version details
@@ -82,8 +82,36 @@ export async function POST(
         }
       });
 
+    } else if (action === "NEEDS_CHANGES") {
+      // 3a. Mark version as admin-needs-changes with note
+      await prisma.renderVersion.update({
+        where: { id },
+        data: {
+          admin_action: "NEEDS_CHANGES",
+          admin_reviewed_at: new Date(),
+          admin_note: note || "No feedback provided."
+        }
+      });
+
+      // 3b. Set render item status → REVISION_REQUIRED
+      await prisma.renderItem.update({
+        where: { id: version.render_item_id },
+        data: { current_status: "REVISION_REQUIRED" }
+      });
+
+      // 3c. Notify employee
+      await prisma.notification.create({
+        data: {
+          type: "ADMIN_REJECTED",
+          message: `Your render "${version.renderItem.name}" needs changes. Admin note: "${note || "No feedback provided."}"`,
+          user_id: version.submitted_by_id,
+          related_render_id: version.render_item_id,
+          related_project_id: version.renderItem.project_id
+        }
+      });
+
     } else {
-      // 3a. Mark version as admin-rejected with note
+      // 4a. Mark version as admin-rejected with note
       await prisma.renderVersion.update({
         where: { id },
         data: {
@@ -93,13 +121,13 @@ export async function POST(
         }
       });
 
-      // 3b. Set render item status → ADMIN_REJECTED (hidden from client, visible to employee)
+      // 4b. Set render item status → ADMIN_REJECTED (hidden from client, visible to employee)
       await prisma.renderItem.update({
         where: { id: version.render_item_id },
         data: { current_status: "ADMIN_REJECTED" }
       });
 
-      // 3c. Notify employee
+      // 4c. Notify employee
       await prisma.notification.create({
         data: {
           type: "ADMIN_REJECTED",

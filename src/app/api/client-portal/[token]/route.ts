@@ -33,7 +33,6 @@ export async function GET(
       return NextResponse.json({ error: "Client portal not found" }, { status: 404 });
     }
 
-    // 2. Map projects and counts
     const mappedProjects = client.projects.map((proj) => {
       const counts = {
         approved: 0,
@@ -42,11 +41,25 @@ export async function GET(
       };
 
       proj.renderItems.forEach((item) => {
-        if (item.current_status === "COMPLETE") {
+        // Skip entirely if no version has ever been approved by admin
+        const approvedVersions = item.versions.filter(
+          (v) => v.admin_action === "APPROVED"
+        );
+        if (approvedVersions.length === 0) return;
+
+        // Determine display status exactly like the project details route
+        const isRevisionPending = ["SUBMITTED", "ADMIN_REJECTED", "REVISION_REQUIRED"].includes(item.current_status);
+        const displayStatus = isRevisionPending ? "REVISION_PENDING" : item.current_status;
+
+        if (displayStatus === "COMPLETE") {
           counts.approved++;
-        } else if (item.current_status === "CLIENT_PENDING" || item.current_status === "SUBMITTED" || item.current_status === "ADMIN_REJECTED") {
+        } else if (displayStatus === "CLIENT_PENDING") {
           counts.pending++;
-        } else if (item.current_status === "REJECTED" || item.current_status === "REVISION_REQUIRED") {
+        } else if (
+          displayStatus === "REJECTED" ||
+          displayStatus === "REVISION_REQUIRED" ||
+          displayStatus === "REVISION_PENDING"
+        ) {
           counts.rejected++;
         }
       });

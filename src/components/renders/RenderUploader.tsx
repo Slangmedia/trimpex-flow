@@ -76,37 +76,35 @@ export function RenderUploader({ renderItemId, onSuccess }: RenderUploaderProps)
     setError(null);
 
     try {
-      // 1. Mock Cloud Upload (Simulating a delay and returning a fake URL)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      // For development, we use the images provided by the user in public/uploads
-      const devImages = [
-        "plitka-1xsale-artcer-44840.jpg",
-        "plitka-cement-artcer-37.png",
-        "plitka-ethereal-ibero-46510_1.png",
-        "plitka-marble-artcer-24077_14.jpg",
-        "plitka-marble-artcer-24077_7.jpg"
-      ];
-      
-      const randomImage = devImages[Math.floor(Math.random() * devImages.length)];
-      const mockFileUrl = selectedFile.type === "IMAGE" 
-        ? `/uploads/${randomImage}` 
-        : "https://storage.3dflow.com/renders/mock-video.mp4";
+      // 1. Upload actual file to storage API
+      const formData = new FormData();
+      formData.append("file", selectedFile.file);
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-      // 2. API Call to backend
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json();
+        throw new Error(errData.error || "Failed to upload file to storage");
+      }
+
+      const { url } = await uploadRes.json();
+
+      // 2. API Call to backend to register new render version
       const response = await fetch("/api/renders/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           renderItemId,
-          fileUrl: mockFileUrl,
+          fileUrl: url,
           fileType: selectedFile.type,
         }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to upload render");
+        throw new Error(data.error || "Failed to upload render version");
       }
 
       setIsSuccess(true);
@@ -173,6 +171,7 @@ export function RenderUploader({ renderItemId, onSuccess }: RenderUploaderProps)
                 size="icon"
                 className="absolute top-2 right-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={clearFile}
+                disabled={isUploading}
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -180,7 +179,8 @@ export function RenderUploader({ renderItemId, onSuccess }: RenderUploaderProps)
               {/* Overlay delete button that's always visible for better UX on mobile */}
               <button 
                 onClick={clearFile}
-                className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-red-500 transition-colors"
+                disabled={isUploading}
+                className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <X className="w-5 h-5" />
               </button>

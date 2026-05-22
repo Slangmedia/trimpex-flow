@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, UploadCloud, Check, Maximize2 } from "lucide-react";
+import { ArrowLeft, Plus, UploadCloud, Check, Maximize2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -119,6 +119,10 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
   const [revisionNote, setRevisionNote] = useState("");
   const [revisionFile, setRevisionFile] = useState<File | null>(null);
 
+  const [isUploading, setIsUploading] = useState(false);
+  const addRenderInputRef = useRef<HTMLInputElement>(null);
+  const revisionInputRef = useRef<HTMLInputElement>(null);
+
   const loadProjectDetails = async () => {
     try {
       const res = await fetch(`/api/projects/${params.id}`);
@@ -168,6 +172,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
     if (!newRenderName.trim()) return;
 
     let fileUrl = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80";
+    setIsUploading(true);
 
     try {
       if (selectedFile) {
@@ -208,6 +213,8 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
     } catch (err) {
       console.error("Error adding render:", err);
       alert("An error occurred while adding the render.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -216,6 +223,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
     if (!selectedRender) return;
 
     let fileUrl = "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80";
+    setIsUploading(true);
 
     try {
       if (revisionFile) {
@@ -250,6 +258,8 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
     } catch (err) {
       console.error("Error submitting revision:", err);
       alert("An error occurred while submitting revision.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -312,14 +322,14 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                   )}
                 </div>
               </CardContent>
-              {["REJECTED", "REVISION_REQUIRED", "ADMIN_REJECTED"].includes(status) && (
+              {status === "REVISION_REQUIRED" && (
                 <CardFooter className="p-5 pt-0">
                   <Button 
-                    className={`w-full ${status === "REJECTED" ? "border border-destructive text-destructive bg-transparent hover:bg-destructive/10" : "bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"}`}
-                    variant={status === "REJECTED" ? "outline" : "default"}
+                    className="w-full bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
+                    variant="default"
                     onClick={(e) => { e.stopPropagation(); openRevisionSheet(render); }}
                   >
-                    {status === "ADMIN_REJECTED" ? "Resubmit" : "Submit Revision"}
+                    Submit Revision
                   </Button>
                 </CardFooter>
               )}
@@ -378,7 +388,13 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
               <form onSubmit={handleAddRender} className="space-y-6 pt-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Render Name *</label>
-                  <Input value={newRenderName} onChange={(e) => setNewRenderName(e.target.value)} placeholder="e.g. Living Room Front View" required />
+                  <Input 
+                    value={newRenderName} 
+                    onChange={(e) => setNewRenderName(e.target.value)} 
+                    placeholder="e.g. Living Room Front View" 
+                    required 
+                    disabled={isUploading}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -388,6 +404,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                     value={newRenderType}
                     onChange={(e) => setNewRenderType(e.target.value)}
                     className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={isUploading}
                   >
                     <option value="" disabled>Select type...</option>
                     <option value="Full View">Full View</option>
@@ -397,18 +414,34 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">File Upload *</label>
-                  <div className="relative border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition-colors overflow-hidden">
-                    <input 
-                      type="file" 
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files.length > 0) {
-                          setSelectedFile(e.target.files[0]);
-                        }
-                      }}
-                      required
-                    />
-                    {selectedFile ? (
+                  <input 
+                    type="file" 
+                    ref={addRenderInputRef}
+                    className="hidden" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setSelectedFile(e.target.files[0]);
+                      }
+                    }}
+                    disabled={isUploading}
+                  />
+                  <div 
+                    onClick={() => {
+                      if (!isUploading) {
+                        addRenderInputRef.current?.click();
+                      }
+                    }}
+                    className={`relative border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-center transition-colors overflow-hidden ${
+                      isUploading ? 'bg-muted/30 cursor-not-allowed' : 'cursor-pointer hover:bg-muted/50'
+                    }`}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-8 w-8 text-black animate-spin mb-4" />
+                        <p className="text-sm font-bold mb-1 text-black">Uploading Render...</p>
+                        <p className="text-xs text-muted-foreground">Please wait while the asset is being uploaded securely</p>
+                      </>
+                    ) : selectedFile ? (
                       <>
                         <Check className="h-8 w-8 text-status-complete-foreground mb-4" />
                         <p className="text-sm font-bold mb-1 text-status-complete-foreground">File Selected</p>
@@ -417,7 +450,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                     ) : (
                       <>
                         <UploadCloud className="h-8 w-8 text-muted-foreground mb-4" />
-                        <p className="text-sm font-medium mb-1">Click to upload or drag and drop</p>
+                        <p className="text-sm font-medium mb-1">Click to upload render</p>
                         <p className="text-xs text-slate-400">JPG, PNG, WEBP, MP4 (preset loaded automatically)</p>
                       </>
                     )}
@@ -425,8 +458,27 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setIsUploadSheetOpen(false)}>Cancel</Button>
-                  <Button type="submit">Submit Render</Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsUploadSheetOpen(false)}
+                    disabled={isUploading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={isUploading || !selectedFile}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit Render"
+                    )}
+                  </Button>
                 </div>
               </form>
             </DialogContent>
@@ -547,18 +599,34 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
             )}
             <div className="space-y-2">
               <label className="text-sm font-medium">New File Upload *</label>
-              <div className="relative border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition-colors overflow-hidden">
-                <input 
-                  type="file" 
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files.length > 0) {
-                      setRevisionFile(e.target.files[0]);
-                    }
-                  }}
-                  required
-                />
-                {revisionFile ? (
+              <input 
+                type="file" 
+                ref={revisionInputRef}
+                className="hidden" 
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    setRevisionFile(e.target.files[0]);
+                  }
+                }}
+                disabled={isUploading}
+              />
+              <div 
+                onClick={() => {
+                  if (!isUploading) {
+                    revisionInputRef.current?.click();
+                  }
+                }}
+                className={`relative border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-center transition-colors overflow-hidden ${
+                  isUploading ? 'bg-muted/30 cursor-not-allowed' : 'cursor-pointer hover:bg-muted/50'
+                }`}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-8 w-8 text-black animate-spin mb-4" />
+                    <p className="text-sm font-bold mb-1 text-black">Uploading Revision...</p>
+                    <p className="text-xs text-muted-foreground">Please wait while the revision is being uploaded securely</p>
+                  </>
+                ) : revisionFile ? (
                   <>
                     <Check className="h-8 w-8 text-status-complete-foreground mb-4" />
                     <p className="text-sm font-bold mb-1 text-status-complete-foreground">File Selected</p>
@@ -567,7 +635,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 ) : (
                   <>
                     <UploadCloud className="h-8 w-8 text-muted-foreground mb-4" />
-                    <p className="text-sm font-medium mb-1">Click to upload or drag and drop</p>
+                    <p className="text-sm font-medium mb-1">Click to upload revision</p>
                     <p className="text-xs text-slate-400">JPG, PNG, WEBP, MP4 (preset loaded automatically)</p>
                   </>
                 )}
@@ -575,12 +643,35 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Note to Admin (Optional)</label>
-              <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} placeholder="Explain what was fixed..." />
+              <Textarea 
+                value={revisionNote} 
+                onChange={(e) => setRevisionNote(e.target.value)} 
+                placeholder="Explain what was fixed..." 
+                disabled={isUploading}
+              />
             </div>
             <div className="pt-4 flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setIsRevisionSheetOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90">
-                Submit V{(selectedRender?.currentVersion || selectedRender?.version || 1) + 1}
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsRevisionSheetOpen(false)}
+                disabled={isUploading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isUploading || !revisionFile}
+                className="bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  `Submit V${(selectedRender?.currentVersion || selectedRender?.version || 1) + 1}`
+                )}
               </Button>
             </div>
           </form>
