@@ -75,6 +75,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [skuSearchQuery, setSkuSearchQuery] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
@@ -269,16 +270,28 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     );
   }
 
+  const uniqueEmployees = Array.from(
+    new Map(
+      renders
+        .filter((r: any) => r.createdById && r.submittedBy)
+        .map((r: any) => [r.createdById, r.submittedBy])
+    ).entries()
+  ).map(([id, name]) => ({ id, name }));
+
+  const filteredRendersByEmployee = selectedEmployeeId === "all"
+    ? renders
+    : renders.filter((r: any) => r.createdById === selectedEmployeeId);
+
   const totalRenders = project.totalRenders || renders.length;
-  const completeCount = renders.filter((r: any) => r.currentStatus === "COMPLETE").length;
-  const reviewCount = renders.filter((r: any) => ["SUBMITTED", "CLIENT_PENDING", "ADMIN_REJECTED"].includes(r.currentStatus)).length;
-  const revisionCount = renders.filter((r: any) => ["REVISION_REQUIRED", "REJECTED"].includes(r.currentStatus)).length;
+  const completeCount = filteredRendersByEmployee.filter((r: any) => r.currentStatus === "COMPLETE").length;
+  const reviewCount = filteredRendersByEmployee.filter((r: any) => ["SUBMITTED", "CLIENT_PENDING", "ADMIN_REJECTED"].includes(r.currentStatus)).length;
+  const revisionCount = filteredRendersByEmployee.filter((r: any) => ["REVISION_REQUIRED", "REJECTED"].includes(r.currentStatus)).length;
 
   // Custom tab counts
-  const tabReviewCount = renders.filter((r: any) => r.currentStatus === "SUBMITTED").length;
-  const tabRevisionCount = renders.filter((r: any) => r.currentStatus === "REVISION_REQUIRED").length;
-  const tabRejectCount = renders.filter((r: any) => ["REJECTED", "ADMIN_REJECTED"].includes(r.currentStatus)).length;
-  const tabPendingClientCount = renders.filter((r: any) => r.currentStatus === "CLIENT_PENDING").length;
+  const tabReviewCount = filteredRendersByEmployee.filter((r: any) => r.currentStatus === "SUBMITTED").length;
+  const tabRevisionCount = filteredRendersByEmployee.filter((r: any) => r.currentStatus === "REVISION_REQUIRED").length;
+  const tabRejectCount = filteredRendersByEmployee.filter((r: any) => ["REJECTED", "ADMIN_REJECTED"].includes(r.currentStatus)).length;
+  const tabPendingClientCount = filteredRendersByEmployee.filter((r: any) => r.currentStatus === "CLIENT_PENDING").length;
 
   const renderTable = (filteredRenders: any[]) => (
     <div className="w-full overflow-x-auto">
@@ -369,9 +382,13 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   );
 
   const getFilteredRenders = (baseRenders: any[]) => {
-    if (!skuSearchQuery.trim()) return baseRenders;
+    let filtered = baseRenders;
+    if (selectedEmployeeId !== "all") {
+      filtered = filtered.filter(r => r.createdById === selectedEmployeeId);
+    }
+    if (!skuSearchQuery.trim()) return filtered;
     const query = skuSearchQuery.toLowerCase();
-    return baseRenders.filter(r => 
+    return filtered.filter(r => 
       r.name.toLowerCase().includes(query)
     );
   };
@@ -406,11 +423,16 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               <CardContent className="p-5 flex-1 flex flex-col">
                 <div className="flex flex-col gap-1 mb-4">
                   <h3 className="font-medium text-lg truncate" title={render.name}>{render.name}</h3>
-                  {(render.renderType || render.render_type) && (
-                    <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full w-fit">
-                      {render.renderType || render.render_type}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    {(render.renderType || render.render_type) && (
+                      <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full w-fit">
+                        {render.renderType || render.render_type}
+                      </span>
+                    )}
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      by <strong className="text-slate-800 font-semibold">{render.submittedBy || "Unknown"}</strong>
                     </span>
-                  )}
+                  </div>
                 </div>
                 
                 <div className="mt-auto">
@@ -522,6 +544,20 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                   onChange={(e) => setSkuSearchQuery(e.target.value)}
                 />
               </div>
+              {uniqueEmployees.length > 1 && (
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="h-9 rounded-lg border border-border bg-background px-3 py-1 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary/20 cursor-pointer min-w-[140px]"
+                >
+                  <option value="all">All Employees</option>
+                  {uniqueEmployees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-4 w-full md:w-auto shrink-0 justify-end">
               <TabsList className="bg-muted/50 border border-border rounded-xl p-1 h-auto gap-1">

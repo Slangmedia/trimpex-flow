@@ -297,11 +297,16 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
               <CardContent className="p-5 flex-1 flex flex-col">
                 <div className="flex flex-col gap-1 mb-4">
                   <h3 className="font-medium text-lg truncate" title={render.name}>{render.name}</h3>
-                  {(render.renderType || render.render_type) && (
-                    <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full w-fit">
-                      {render.renderType || render.render_type}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    {(render.renderType || render.render_type) && (
+                      <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full w-fit">
+                        {render.renderType || render.render_type}
+                      </span>
+                    )}
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      by <strong className="text-slate-800 font-semibold">{render.submittedBy || "Unknown"}</strong>
                     </span>
-                  )}
+                  </div>
                 </div>
                 
                 <div className="mt-auto">
