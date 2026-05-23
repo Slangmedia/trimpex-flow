@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // 1. Fetch real notifications from the database
-    // Fetch all for the employee user and general project broadcasts
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.user.id;
+
+    // 1. Fetch real notifications from the database for this specific employee
     const notifications = await prisma.notification.findMany({
+      where: {
+        user_id: userId
+      },
       orderBy: { createdAt: "desc" },
       take: 20
     });

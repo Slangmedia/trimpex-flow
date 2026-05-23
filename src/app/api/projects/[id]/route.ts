@@ -44,7 +44,11 @@ export async function GET(
       }
     }
 
-    const mappedItems = project.renderItems.map((item) => {
+    const filteredRenderItems = session.user.role === "ADMIN"
+      ? project.renderItems
+      : project.renderItems.filter(item => item.created_by_id === session.user.id);
+
+    const mappedItems = filteredRenderItems.map((item) => {
       const currentVersion = item.versions.find(v => v.is_current_version) || item.versions[0];
       return {
         id: item.id,
@@ -82,7 +86,7 @@ export async function GET(
       clientId: project.client_id,
       clientName: project.client.name,
       deadline: project.deadline.toISOString().split("T")[0],
-      totalRenders: project.total_render_count,
+      totalRenders: session.user.role === "ADMIN" ? project.total_render_count : filteredRenderItems.length,
       employees: project.employees.map((e) => e.employee_id),
       renderItems: mappedItems
     });

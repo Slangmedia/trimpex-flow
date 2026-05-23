@@ -45,6 +45,11 @@ export async function GET(
       return NextResponse.json({ error: "Render item not found" }, { status: 404 });
     }
 
+    // Authorization check: Only admin or the creator of the render item can access it
+    if (user.role !== "ADMIN" && renderItem.created_by_id !== user.id) {
+      return NextResponse.json({ error: "Forbidden: You do not have access to this render" }, { status: 403 });
+    }
+
     return NextResponse.json(renderItem);
   } catch (error) {
     console.error("[RENDER_GET_ERROR]", error);

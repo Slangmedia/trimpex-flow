@@ -47,7 +47,9 @@ export async function GET() {
         rejected: 0
       };
 
-      project.renderItems.forEach((item) => {
+      const userRenders = project.renderItems.filter(item => item.created_by_id === userId);
+
+      userRenders.forEach((item) => {
         if (item.current_status === "COMPLETE") {
           counts.complete++;
         } else if (item.current_status === "SUBMITTED" || item.current_status === "ADMIN_REJECTED" || item.current_status === "REVISION_REQUIRED") {
@@ -57,7 +59,7 @@ export async function GET() {
         }
       });
 
-      const total = project.renderItems.length;
+      const total = userRenders.length;
 
       return {
         id: project.id,
@@ -65,7 +67,7 @@ export async function GET() {
         clientName: project.client.name,
         deadline: project.deadline.toISOString().split("T")[0],
         isOverdue: new Date(project.deadline) < new Date() && counts.complete < total,
-        progress: { completed: counts.complete, total: total || project.total_render_count },
+        progress: { completed: counts.complete, total: total },
         counts
       };
     });
