@@ -193,7 +193,10 @@ export default function ClientRenderGallery({ params }: { params: { token: strin
               const url = render.thumbnail || render.fileUrl;
               if (url) {
                 const a = document.createElement('a');
-                a.href = url;
+                // Use original file serving API for local uploads to bypass WebP replacement
+                a.href = url.startsWith("/uploads/")
+                  ? `/api/renders/original?url=${encodeURIComponent(url)}&download=1`
+                  : url;
                 const ext = url.split('.').pop() || 'png';
                 a.download = `${render.name}.${ext}`;
                 a.target = "_blank";

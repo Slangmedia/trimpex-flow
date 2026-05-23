@@ -73,11 +73,19 @@ export async function POST(req: NextRequest) {
     const dateFolder = new Date().toISOString().slice(0, 7); // e.g. "2026-05"
     const relativeUploadDir = path.join(envFolder, dateFolder);
 
-    // Ensure the uploads folder symlink is verified
+    // Determine target upload directory: write directly to public_html/uploads in production
+    const publicHtmlDir = path.resolve(process.cwd(), "..", "public_html");
+    const isProdServer = existsSync(publicHtmlDir);
+    
+    const baseUploadDir = isProdServer 
+      ? path.join(publicHtmlDir, "uploads")
+      : path.join(process.cwd(), "public", "uploads");
+
+    // Ensure the uploads folder symlink is verified (as fallback)
     ensureUploadsSymlink();
 
-    // Ensure local upload directory exists
-    const uploadDir = path.join(process.cwd(), "public", "uploads", relativeUploadDir);
+    // Ensure upload directory exists
+    const uploadDir = path.join(baseUploadDir, relativeUploadDir);
     if (!existsSync(uploadDir)) {
       mkdirSync(uploadDir, { recursive: true });
     }

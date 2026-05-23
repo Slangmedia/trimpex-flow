@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 
 function PreviewContent() {
   const searchParams = useSearchParams();
-  const imageUrl = searchParams.get("url");
+  const rawImageUrl = searchParams.get("url");
+
+  // Rewrite local uploads to use our original file serving API to bypass WebP replacement
+  const imageUrl = rawImageUrl?.startsWith("/uploads/")
+    ? `/api/renders/original?url=${encodeURIComponent(rawImageUrl)}`
+    : rawImageUrl;
+
   const [selectedVersion, setSelectedVersion] = useState<any>(null);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -21,7 +27,7 @@ function PreviewContent() {
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setHasError(false);
-  }, [imageUrl]);
+  }, [rawImageUrl]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -167,7 +173,7 @@ function PreviewContent() {
             </div>
             <h3 className="text-white font-semibold text-lg mb-2">Failed to load preview</h3>
             <p className="text-neutral-400 text-sm mb-6 leading-relaxed">
-              We couldn't load the file from <code className="bg-neutral-950 px-1.5 py-0.5 rounded text-neutral-300 break-all text-xs font-mono">{imageUrl}</code>.
+              We couldn't load the file from <code className="bg-neutral-950 px-1.5 py-0.5 rounded text-neutral-300 break-all text-xs font-mono">{rawImageUrl}</code>.
               <br />
               <span className="mt-2 block text-xs text-neutral-500">
                 If this file was uploaded before the latest deployment, it may need to be synchronized to the static directory.
@@ -190,7 +196,7 @@ function PreviewContent() {
               </a>
             </div>
           </div>
-        ) : isVideoUrl(imageUrl) ? (
+        ) : isVideoUrl(rawImageUrl || "") ? (
           <video 
             src={imageUrl} 
             controls 
