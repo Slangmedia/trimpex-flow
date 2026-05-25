@@ -175,3 +175,14 @@ enum NotificationType {
   CLIENT_REJECTED
   CLIENT_REQUESTED_CHANGES
 }
+
+model SystemSettings {
+  id            String   @id @default("default")
+  companyName   String   @default("3DFlow")
+  supportEmail  String   @default("support@3dflow.com")
+  accentColor   String   @default("indigo") // indigo, emerald, sky, amber, rose
+  logoUrl       String?  // custom brand logo URL
+  copyrightText String   @default("© 2026 3DFlow. All rights reserved.")
+  updatedAt     DateTime @updatedAt
+}
+

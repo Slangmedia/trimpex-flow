@@ -8,12 +8,12 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const userId = session.user.id;
 
-    // 1. Fetch real notifications from the database for this specific employee
+    // Fetch real notifications from the database for this specific admin
     const notifications = await prisma.notification.findMany({
       where: {
         user_id: userId
@@ -48,7 +48,7 @@ export async function GET() {
 
     return NextResponse.json(mappedNotifications);
   } catch (error) {
-    console.error("Failed to load employee notifications:", error);
+    console.error("Failed to load admin notifications:", error);
     return NextResponse.json({ error: "Failed to load notifications" }, { status: 500 });
   }
 }
@@ -56,7 +56,7 @@ export async function GET() {
 export async function PUT() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const userId = session.user.id;
@@ -74,7 +74,7 @@ export async function PUT() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to mark employee notifications as read:", error);
+    console.error("Failed to mark admin notifications as read:", error);
     return NextResponse.json({ error: "Failed to update notifications" }, { status: 500 });
   }
 }

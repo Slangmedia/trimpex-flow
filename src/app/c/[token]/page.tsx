@@ -57,6 +57,25 @@ export default function ClientPortalPage({ params }: { params: { token: string }
   const [projects, setProjects] = useState<any[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [branding, setBranding] = useState({ companyName: "3DFlow", logoUrl: "" });
+
+  useEffect(() => {
+    async function loadBranding() {
+      try {
+        const res = await fetch("/api/branding");
+        if (res.ok) {
+          const data = await res.json();
+          setBranding({
+            companyName: data.companyName || "3DFlow",
+            logoUrl: data.logoUrl || "",
+          });
+        }
+      } catch (e) {
+        console.error("Failed to load branding in client portal", e);
+      }
+    }
+    loadBranding();
+  }, []);
 
   useEffect(() => {
     async function loadClientPortal() {
@@ -88,7 +107,13 @@ export default function ClientPortalPage({ params }: { params: { token: string }
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 border-b border-border">
-        <h1 className="text-xl font-bold tracking-tight">3DFlow</h1>
+        <div className="flex items-center gap-2.5">
+          {branding.logoUrl ? (
+            <img src={branding.logoUrl} alt="Logo" className="h-7 w-auto object-contain max-w-[140px]" />
+          ) : (
+            <h1 className="text-xl font-bold tracking-tight">{branding.companyName}</h1>
+          )}
+        </div>
         <div className="text-sm font-medium">{client.name}</div>
       </header>
       

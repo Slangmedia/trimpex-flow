@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
     // 1. Check parent RenderItem status
     const renderItem = await prisma.renderItem.findUnique({
       where: { id: renderItemId },
+      include: {
+        project: true
+      }
     });
 
     if (!renderItem) {
@@ -72,6 +75,23 @@ export async function POST(req: NextRequest) {
         current_status: "SUBMITTED",
       },
     });
+
+    // 5. Notify the project admin
+    if (renderItem?.project?.created_by_id) {
+      try {
+        await prisma.notification.create({
+          data: {
+            type: "RENDER_SUBMITTED",
+            message: `${session.user.name || "Employee"} submitted "${renderItem.name}" (V${nextVersionNumber})`,
+            user_id: renderItem.project.created_by_id,
+            related_render_id: renderItemId,
+            related_project_id: renderItem.project_id
+          }
+        });
+      } catch (e) {
+        console.error("Failed to create notification on render upload:", e);
+      }
+    }
 
     return NextResponse.json({
       message: "Render version created successfully",

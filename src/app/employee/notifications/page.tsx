@@ -25,6 +25,21 @@ export default function EmployeeNotificationsPage() {
     loadNotifications();
   }, []);
 
+  const handleMarkAllAsRead = async () => {
+    try {
+      const res = await fetch("/api/employee/notifications", {
+        method: "PUT"
+      });
+      if (res.ok) {
+        setNotifications(notifications.map(n => ({ ...n, read: true })));
+      }
+    } catch (e) {
+      console.error("Failed to mark employee notifications as read", e);
+    }
+  };
+
+  const hasUnread = notifications.some(n => !n.read);
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
@@ -32,7 +47,13 @@ export default function EmployeeNotificationsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
           <p className="text-muted-foreground mt-1">Updates on your assigned projects and renders.</p>
         </div>
-        <Button variant="outline" disabled={notifications.length === 0}>Mark all as read</Button>
+        <Button 
+          variant="outline" 
+          onClick={handleMarkAllAsRead} 
+          disabled={isLoading || !hasUnread}
+        >
+          Mark all as read
+        </Button>
       </div>
 
       <div className="rounded-md border border-border bg-card overflow-hidden">

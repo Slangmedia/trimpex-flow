@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -23,11 +24,37 @@ const navigation = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const [branding, setBranding] = useState({ companyName: "3DFlow", logoUrl: "" });
+
+  const loadBranding = async () => {
+    try {
+      const res = await fetch("/api/branding");
+      if (res.ok) {
+        const data = await res.json();
+        setBranding({
+          companyName: data.companyName || "3DFlow",
+          logoUrl: data.logoUrl || "",
+        });
+      }
+    } catch (e) {
+      console.error("Failed to load branding in admin sidebar", e);
+    }
+  };
+
+  useEffect(() => {
+    loadBranding();
+    window.addEventListener("branding-updated", loadBranding);
+    return () => window.removeEventListener("branding-updated", loadBranding);
+  }, []);
 
   return (
     <div className="flex h-full w-full flex-col bg-background border-r border-border">
-      <div className="flex h-16 shrink-0 items-center px-6 border-b border-border">
-        <h1 className="text-[18px] font-semibold text-foreground tracking-tight">3DFlow</h1>
+      <div className="flex h-16 shrink-0 items-center px-6 border-b border-border gap-2.5">
+        {branding.logoUrl ? (
+          <img src={branding.logoUrl} alt="Logo" className="h-7 w-auto object-contain max-w-[140px]" />
+        ) : (
+          <h1 className="text-[18px] font-semibold text-foreground tracking-tight">{branding.companyName}</h1>
+        )}
       </div>
       <div className="flex flex-1 flex-col overflow-y-auto pt-4 px-4 pb-4">
         <nav className="flex-1 space-y-1">
@@ -60,3 +87,4 @@ export function AdminSidebar() {
     </div>
   );
 }
+

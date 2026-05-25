@@ -128,6 +128,7 @@ export async function PATCH(
     const renderItem = await prisma.renderItem.findUnique({
       where: { id: renderId },
       include: {
+        project: true,
         versions: {
           where: { is_current_version: true }
         }
@@ -177,6 +178,40 @@ export async function PATCH(
         current_status: newStatus
       }
     });
+
+    // Create notifications for Admin and Employee
+    try {
+      const actionName = action === "APPROVE" ? "approved" : action === "REJECT" ? "rejected" : "requested changes on";
+      const notifType = clientAction === "APPROVED" ? "CLIENT_APPROVED" : clientAction === "REJECTED" ? "CLIENT_REJECTED" : "CLIENT_REQUESTED_CHANGES";
+
+      // 1. Notify Admin
+      if (renderItem.project?.created_by_id) {
+        await prisma.notification.create({
+          data: {
+            type: notifType,
+            message: `Client "${client.name}" ${actionName} "${renderItem.name}" (V${currentVersion.version_number})`,
+            user_id: renderItem.project.created_by_id,
+            related_render_id: renderId,
+            related_project_id: project_id
+          }
+        });
+      }
+
+      // 2. Notify Employee who submitted the version
+      if (currentVersion.submitted_by_id) {
+        await prisma.notification.create({
+          data: {
+            type: notifType,
+            message: `Client "${client.name}" ${actionName} your render "${renderItem.name}" (V${currentVersion.version_number})`,
+            user_id: currentVersion.submitted_by_id,
+            related_render_id: renderId,
+            related_project_id: project_id
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Failed to create client review notifications:", e);
+    }
 
     return NextResponse.json({ success: true, status: result.current_status });
   } catch (error) {

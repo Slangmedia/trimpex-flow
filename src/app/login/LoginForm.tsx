@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -50,6 +50,26 @@ export default function LoginForm() {
     }
   };
 
+  const [branding, setBranding] = useState({ companyName: "3DFlow", logoUrl: "" });
+
+  useEffect(() => {
+    async function loadBranding() {
+      try {
+        const res = await fetch("/api/branding");
+        if (res.ok) {
+          const data = await res.json();
+          setBranding({
+            companyName: data.companyName || "3DFlow",
+            logoUrl: data.logoUrl || "",
+          });
+        }
+      } catch (e) {
+        console.error("Failed to load branding in login", e);
+      }
+    }
+    loadBranding();
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
@@ -57,7 +77,13 @@ export default function LoginForm() {
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <Lock className="w-6 h-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">3DFlow</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight flex items-center justify-center gap-2">
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt="Logo" className="h-8 w-auto object-contain max-w-[150px]" />
+            ) : (
+              <span>{branding.companyName}</span>
+            )}
+          </CardTitle>
           <CardDescription>
             Sign in to your account
           </CardDescription>
