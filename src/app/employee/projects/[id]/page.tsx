@@ -327,7 +327,11 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
               {["SUBMITTED", "REVISION_REQUIRED", "REJECTED", "ADMIN_REJECTED"].includes(status) && (
                 <CardFooter className="p-5">
                   <Button 
-                    className="w-full bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
+                    className={`w-full ${
+                      status === "SUBMITTED" 
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                        : "bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
+                    }`}
                     variant="default"
                     onClick={(e) => { e.stopPropagation(); openRevisionSheet(render); }}
                   >
@@ -677,7 +681,11 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
               <Button 
                 type="submit" 
                 disabled={isUploading || !revisionFile}
-                className="bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
+                className={
+                  (selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED"
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    : "bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
+                }
               >
                 {isUploading ? (
                   <>
@@ -834,7 +842,11 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 <div className="p-4 border-t border-border bg-card shrink-0 flex flex-col gap-2">
                   {["SUBMITTED", "REVISION_REQUIRED", "REJECTED", "ADMIN_REJECTED"].includes(detailRender.currentStatus || detailRender.status) && (
                     <Button
-                      className="w-full bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90 font-semibold"
+                      className={`w-full font-semibold ${
+                        (detailRender.currentStatus || detailRender.status) === "SUBMITTED"
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          : "bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
+                      }`}
                       onClick={() => {
                         setDetailRender(null);
                         openRevisionSheet(detailRender);
