@@ -81,11 +81,11 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAdminReview = async (action: "APPROVE" | "REJECT" | "NEEDS_CHANGES" | "UNDO") => {
+  const handleAdminReview = async (action: "APPROVE" | "REJECT" | "NEEDS_CHANGES" | "UNDO", customNote?: string) => {
     if (!selectedRender) return;
 
     // Validate that feedback note is provided for needs changes actions (optional for reject)
-    if (action === "NEEDS_CHANGES" && !adminFeedback.trim()) {
+    if (action === "NEEDS_CHANGES" && !customNote && !adminFeedback.trim()) {
       alert("Please write a feedback message explaining why this item needs changes.");
       return;
     }
@@ -99,7 +99,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         },
         body: JSON.stringify({
           action,
-          note: action === "UNDO" ? "" : adminFeedback,
+          note: action === "UNDO" ? "" : (customNote || adminFeedback),
           versionId: selectedRender.currentVersionId,
         }),
       });
@@ -823,6 +823,30 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                       disabled={isSubmittingReview}
                     >
                       {isSubmittingReview ? "Processing..." : "Undo Review Decision"}
+                    </Button>
+                  </div>
+                )}
+
+                {selectedRender && selectedRender.adminNote !== "[REUPLOAD_REQUEST]" && (
+                  <div className="space-y-4 p-4 bg-rose-500/10 rounded-xl border border-rose-500/20">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-rose-600">
+                        <AlertCircle className="w-4 h-4" /> Reupload Request
+                      </h3>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      If the image fails to load or the file is missing/broken, you can ask the employee to reupload it. The version number will remain unchanged.
+                    </p>
+                    <Button 
+                      className="w-full h-9 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg flex items-center justify-center gap-2"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to request a file reupload for this render? This will ask the employee to upload a replacement file without incrementing the version count.")) {
+                          handleAdminReview("NEEDS_CHANGES", "[REUPLOAD_REQUEST]");
+                        }
+                      }}
+                      disabled={isSubmittingReview}
+                    >
+                      {isSubmittingReview ? "Processing..." : "Request Reupload"}
                     </Button>
                   </div>
                 )}

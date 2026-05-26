@@ -241,6 +241,8 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
       }
       
       const isSubmittedStatus = (selectedRender.currentStatus || selectedRender.status) === "SUBMITTED";
+      const isReuploadRequest = selectedRender.adminNote === "[REUPLOAD_REQUEST]";
+      const shouldOverwrite = isSubmittedStatus || isReuploadRequest;
       
       const res = await fetch("/api/renders/upload", {
         method: "POST",
@@ -249,7 +251,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
           renderItemId: selectedRender.id,
           fileUrl,
           fileType,
-          overwrite: isSubmittedStatus
+          overwrite: shouldOverwrite
         })
       });
       if (res.ok) {
@@ -328,14 +330,14 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 <CardFooter className="p-5">
                   <Button 
                     className={`w-full ${
-                      status === "SUBMITTED" 
+                      (status === "SUBMITTED" || render.adminNote === "[REUPLOAD_REQUEST]") 
                         ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
                         : "bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
                     }`}
                     variant="default"
                     onClick={(e) => { e.stopPropagation(); openRevisionSheet(render); }}
                   >
-                    {status === "SUBMITTED" ? "Change Render" : "Submit Revision"}
+                    {(status === "SUBMITTED" || render.adminNote === "[REUPLOAD_REQUEST]") ? "Change Render" : "Submit Revision"}
                   </Button>
                 </CardFooter>
               )}
@@ -594,10 +596,10 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle>
-              {(selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED" ? "Change Render" : "Submit Revision"}
+              {((selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED" || selectedRender?.adminNote === "[REUPLOAD_REQUEST]") ? "Change Render" : "Submit Revision"}
             </DialogTitle>
             <DialogDescription>
-              {(selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED"
+              {((selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED" || selectedRender?.adminNote === "[REUPLOAD_REQUEST]")
                 ? `Replace/change the file for ${selectedRender?.name} (replaces current version)`
                 : `Upload a new version for ${selectedRender?.name}`
               }
@@ -682,7 +684,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 type="submit" 
                 disabled={isUploading || !revisionFile}
                 className={
-                  (selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED"
+                  ((selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED" || selectedRender?.adminNote === "[REUPLOAD_REQUEST]")
                     ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                     : "bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
                 }
@@ -690,10 +692,10 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 {isUploading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {(selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED" ? "Updating..." : "Submitting..."}
+                    {((selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED" || selectedRender?.adminNote === "[REUPLOAD_REQUEST]") ? "Updating..." : "Submitting..."}
                   </>
                 ) : (
-                  (selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED"
+                  ((selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED" || selectedRender?.adminNote === "[REUPLOAD_REQUEST]")
                     ? "Change Render"
                     : `Submit V${(selectedRender?.currentVersion || selectedRender?.version || 1) + 1}`
                 )}
@@ -843,7 +845,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                   {["SUBMITTED", "REVISION_REQUIRED", "REJECTED", "ADMIN_REJECTED"].includes(detailRender.currentStatus || detailRender.status) && (
                     <Button
                       className={`w-full font-semibold ${
-                        (detailRender.currentStatus || detailRender.status) === "SUBMITTED"
+                        ((detailRender.currentStatus || detailRender.status) === "SUBMITTED" || detailRender.adminNote === "[REUPLOAD_REQUEST]")
                           ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                           : "bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
                       }`}
@@ -852,7 +854,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                         openRevisionSheet(detailRender);
                       }}
                     >
-                      {(detailRender.currentStatus || detailRender.status) === "SUBMITTED" ? "Change Render" : "Submit Revision"}
+                      {((detailRender.currentStatus || detailRender.status) === "SUBMITTED" || detailRender.adminNote === "[REUPLOAD_REQUEST]") ? "Change Render" : "Submit Revision"}
                     </Button>
                   )}
                   

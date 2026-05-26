@@ -48,12 +48,16 @@ export async function POST(req: NextRequest) {
             file_url: fileUrl,
             file_type: fileType,
             submitted_at: new Date(),
+            admin_note: null,
+            admin_action: null,
+            admin_reviewed_at: null,
           }
         });
 
         const updatedItem = await prisma.renderItem.update({
           where: { id: renderItemId },
           data: {
+            current_status: "SUBMITTED",
             updatedAt: new Date()
           }
         });
