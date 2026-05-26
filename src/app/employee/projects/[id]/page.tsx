@@ -223,6 +223,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
     if (!selectedRender) return;
 
     let fileUrl = "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80";
+    let fileType = "IMAGE";
     setIsUploading(true);
 
     try {
@@ -233,17 +234,22 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
         if (uploadRes.ok) {
           const { url } = await uploadRes.json();
           fileUrl = url;
+          fileType = revisionFile.type.startsWith("video/") ? "VIDEO" : "IMAGE";
         } else {
           console.error("File upload failed, falling back to preset.");
         }
       }
+      
+      const isSubmittedStatus = (selectedRender.currentStatus || selectedRender.status) === "SUBMITTED";
+      
       const res = await fetch("/api/renders/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           renderItemId: selectedRender.id,
           fileUrl,
-          fileType: "IMAGE"
+          fileType,
+          overwrite: isSubmittedStatus
         })
       });
       if (res.ok) {
@@ -325,7 +331,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                     variant="default"
                     onClick={(e) => { e.stopPropagation(); openRevisionSheet(render); }}
                   >
-                    Submit Revision
+                    {status === "SUBMITTED" ? "Change Render" : "Submit Revision"}
                   </Button>
                 </CardFooter>
               )}
@@ -583,9 +589,14 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
       <Dialog open={isRevisionSheetOpen} onOpenChange={setIsRevisionSheetOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>Submit Revision</DialogTitle>
+            <DialogTitle>
+              {(selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED" ? "Change Render" : "Submit Revision"}
+            </DialogTitle>
             <DialogDescription>
-              Upload a new version for {selectedRender?.name}
+              {(selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED"
+                ? `Replace/change the file for ${selectedRender?.name} (replaces current version)`
+                : `Upload a new version for ${selectedRender?.name}`
+              }
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitRevision} className="space-y-6 py-2">
@@ -671,10 +682,12 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                 {isUploading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
+                    {(selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED" ? "Updating..." : "Submitting..."}
                   </>
                 ) : (
-                  `Submit V${(selectedRender?.currentVersion || selectedRender?.version || 1) + 1}`
+                  (selectedRender?.currentStatus || selectedRender?.status) === "SUBMITTED"
+                    ? "Change Render"
+                    : `Submit V${(selectedRender?.currentVersion || selectedRender?.version || 1) + 1}`
                 )}
               </Button>
             </div>
@@ -827,7 +840,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                         openRevisionSheet(detailRender);
                       }}
                     >
-                      Submit Revision
+                      {(detailRender.currentStatus || detailRender.status) === "SUBMITTED" ? "Change Render" : "Submit Revision"}
                     </Button>
                   )}
                   

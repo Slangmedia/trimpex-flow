@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     }
     const userId = session.user.id;
 
-    const { renderItemId, fileUrl, fileType } = await req.json();
+    const { renderItemId, fileUrl, fileType, overwrite } = await req.json();
 
     if (!renderItemId || !fileUrl || !fileType) {
       return NextResponse.json(
@@ -30,6 +30,56 @@ export async function POST(req: NextRequest) {
 
     if (!renderItem) {
       return NextResponse.json({ error: "Render item not found" }, { status: 404 });
+    }
+
+    // If overwrite is requested, update the existing current version in place instead of creating a new version
+    if (overwrite) {
+      const currentVersion = await prisma.renderVersion.findFirst({
+        where: {
+          render_item_id: renderItemId,
+          is_current_version: true
+        }
+      });
+
+      if (currentVersion) {
+        const updatedVersion = await prisma.renderVersion.update({
+          where: { id: currentVersion.id },
+          data: {
+            file_url: fileUrl,
+            file_type: fileType,
+            submitted_at: new Date(),
+          }
+        });
+
+        const updatedItem = await prisma.renderItem.update({
+          where: { id: renderItemId },
+          data: {
+            updatedAt: new Date()
+          }
+        });
+
+        // Notify the project admin
+        if (renderItem?.project?.created_by_id) {
+          try {
+            await prisma.notification.create({
+              data: {
+                type: "RENDER_SUBMITTED",
+                message: `${session.user.name || "Employee"} updated render "${renderItem.name}" (V${currentVersion.version_number})`,
+                user_id: renderItem.project.created_by_id,
+                related_render_id: renderItemId,
+                related_project_id: renderItem.project_id
+              }
+            });
+          } catch (e) {
+            console.error("Failed to create notification on render update:", e);
+          }
+        }
+
+        return NextResponse.json({
+          message: "Render version updated successfully",
+          data: { newVersion: updatedVersion, updatedItem },
+        });
+      }
     }
 
     // 2. Get the current version count for this item
