@@ -195,21 +195,30 @@ export default function ClientRenderGallery({ params }: { params: { token: strin
             variant="ghost" 
             size="icon" 
             className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0"
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation();
               const url = render.thumbnail || render.fileUrl;
               if (url) {
-                const a = document.createElement('a');
-                // Use original file serving API for local uploads to bypass WebP replacement
-                a.href = url.startsWith("/uploads/")
-                  ? `/api/renders/original?url=${encodeURIComponent(url)}&download=1`
-                  : url;
-                const ext = url.split('.').pop() || 'png';
-                a.download = `${render.name}.${ext}`;
-                a.target = "_blank";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+                try {
+                  const res = await fetch(url);
+                  if (!res.ok) throw new Error("Failed to fetch file");
+                  const blob = await res.blob();
+                  const blobUrl = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = blobUrl;
+                  const ext = url.split('.').pop() || 'png';
+                  const cleanName = render.name.toLowerCase().endsWith(`.${ext}`)
+                    ? render.name
+                    : `${render.name}.${ext}`;
+                  a.download = cleanName;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(blobUrl);
+                } catch (err) {
+                  console.error("Client-side download failed, falling back:", err);
+                  window.open(url, "_blank");
+                }
               }
             }}
           >

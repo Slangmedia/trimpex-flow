@@ -9,10 +9,7 @@ function PreviewContent() {
   const searchParams = useSearchParams();
   const rawImageUrl = searchParams.get("url");
 
-  // Rewrite local uploads to use our original file serving API to bypass WebP replacement
-  const imageUrl = rawImageUrl?.startsWith("/uploads/")
-    ? `/api/renders/original?url=${encodeURIComponent(rawImageUrl)}`
-    : rawImageUrl;
+  const imageUrl = rawImageUrl;
 
   const [selectedVersion, setSelectedVersion] = useState<any>(null);
   const [scale, setScale] = useState(1);
