@@ -32,13 +32,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Render item not found" }, { status: 404 });
     }
 
-    if (renderItem.current_status === "ADMIN_REJECTED" || renderItem.current_status === "REJECTED") {
-      return NextResponse.json(
-        { error: "This item has been rejected and cannot be resubmitted." },
-        { status: 400 }
-      );
-    }
-
     // 2. Get the current version count for this item
     const versionCount = await prisma.renderVersion.count({
       where: { render_item_id: renderItemId },

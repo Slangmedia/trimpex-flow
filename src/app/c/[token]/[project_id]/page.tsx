@@ -61,6 +61,7 @@ export default function ClientRenderGallery({ params }: { params: { token: strin
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [renderToReject, setRenderToReject] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const [selectedRender, setSelectedRender] = useState<any>(null);
   const [selectedVersion, setSelectedVersion] = useState<any>(null);
@@ -116,7 +117,7 @@ export default function ClientRenderGallery({ params }: { params: { token: strin
 
   const handleSubmitFeedback = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!feedbackText.trim()) return;
+    if (feedbackText.trim().length < 10) return;
     try {
       const res = await fetch(`/api/client-portal/${params.token}/${params.project_id}`, {
         method: "PATCH",
@@ -136,11 +137,13 @@ export default function ClientRenderGallery({ params }: { params: { token: strin
     e.stopPropagation();
     setRenderToReject(id);
     setRejectReason("");
+    setErrorMsg("");
     setIsRejectModalOpen(true);
   };
 
   const confirmReject = async () => {
     if (!renderToReject || rejectReason.length < 10) return;
+    setErrorMsg("");
     try {
       const res = await fetch(`/api/client-portal/${params.token}/${params.project_id}`, {
         method: "PATCH",
@@ -150,9 +153,13 @@ export default function ClientRenderGallery({ params }: { params: { token: strin
       if (res.ok) {
         setRenders(renders.map(r => r.id === renderToReject ? { ...r, status: "REJECTED", clientFeedback: rejectReason } : r));
         setIsRejectModalOpen(false);
+      } else {
+        const errData = await res.json();
+        setErrorMsg(errData.error || "Failed to reject render. Please check the feedback and try again.");
       }
     } catch (err) {
       console.error("Failed to reject render:", err);
+      setErrorMsg("An unexpected error occurred. Please try again.");
     }
   };
 
@@ -358,6 +365,9 @@ export default function ClientRenderGallery({ params }: { params: { token: strin
               {rejectReason.length > 0 && rejectReason.length < 10 && (
                 <p className="text-xs text-destructive">Please provide at least 10 characters.</p>
               )}
+              {errorMsg && (
+                <p className="text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 mt-2">{errorMsg}</p>
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-3">
@@ -474,12 +484,17 @@ export default function ClientRenderGallery({ params }: { params: { token: strin
                           onChange={(e) => setFeedbackText(e.target.value)}
                         />
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground">{feedbackText.length}/500</span>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs text-muted-foreground">{feedbackText.length}/500</span>
+                            {feedbackText.trim().length > 0 && feedbackText.trim().length < 10 && (
+                              <span className="text-[10px] text-destructive">At least 10 characters required.</span>
+                            )}
+                          </div>
                           <Button 
                             size="sm" 
                             className="bg-status-revision hover:bg-status-revision/90 text-status-revision-foreground"
                             onClick={(e) => handleSubmitFeedback(e, selectedRender.id)}
-                            disabled={!feedbackText.trim()}
+                            disabled={feedbackText.trim().length < 10}
                           >
                             Submit Feedback
                           </Button>

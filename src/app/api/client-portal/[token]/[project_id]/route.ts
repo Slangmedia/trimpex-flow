@@ -115,6 +115,13 @@ export async function PATCH(
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    if ((action === "REJECT" || action === "CHANGES") && (!feedback || feedback.trim().length < 10)) {
+      return NextResponse.json(
+        { error: "A feedback message of at least 10 characters is required for rejection or change requests." },
+        { status: 400 }
+      );
+    }
+
     // 1. Verify client public link token
     const client = await prisma.client.findUnique({
       where: { public_link_token: token }
