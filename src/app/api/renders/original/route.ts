@@ -3,6 +3,8 @@ import fs from "fs";
 import path from "path";
 import { ensureUploadsSymlink } from "@/lib/symlink";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -23,22 +25,30 @@ export async function GET(request: NextRequest) {
 
     const relativePath = fileUrl.replace(/^\/uploads\//, "");
     
-    // Resolve file path
-    let filePath = path.join(process.cwd(), "public", "uploads", relativePath);
-    if (!fs.existsSync(filePath)) {
-      const publicHtmlPath = path.resolve(process.cwd(), "..", "public_html", "uploads", relativePath);
-      if (fs.existsSync(publicHtmlPath)) {
-        filePath = publicHtmlPath;
+    // Resolve file path by checking common directories (main domain, subdomains, local, etc.)
+    const possiblePaths = [
+      path.join(process.cwd(), "public", "uploads", relativePath),
+      path.resolve(process.cwd(), "..", "public_html", "uploads", relativePath),
+      path.resolve(process.cwd(), "..", "public_html", "flow", "uploads", relativePath),
+      path.resolve(process.cwd(), "..", "public_html", "flow.trimpexstudio.com", "uploads", relativePath),
+      path.resolve(process.cwd(), "..", "flow.trimpexstudio.com", "public", "uploads", relativePath),
+      path.resolve(process.cwd(), "uploads", relativePath),
+    ];
+
+    let filePath = "";
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        filePath = p;
+        break;
       }
     }
 
     if (!fs.existsSync(filePath)) {
-      // If the file is not found locally, we fall back to redirecting to the production URL,
-      // but to prevent loop issues and preserve headers, we first try to check process.env.NEXTAUTH_URL.
+      const isDev = process.env.NODE_ENV !== "production";
       const targetUrl = process.env.NEXTAUTH_URL;
       const isTargetRemote = targetUrl && !targetUrl.includes("localhost") && !targetUrl.includes("127.0.0.1");
       
-      if (isTargetRemote) {
+      if (isDev && isTargetRemote) {
         const remoteFileUrl = `${targetUrl.replace(/\/$/, "")}/uploads/${relativePath}`;
         return NextResponse.redirect(remoteFileUrl, 307);
       }
