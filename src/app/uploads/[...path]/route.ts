@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { ensureUploadsSymlink } from "@/lib/symlink";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +9,7 @@ export async function GET(
   { params }: { params: { path: string[] } }
 ) {
   try {
-    ensureUploadsSymlink();
+
 
     const filePathSegments = params.path;
     if (!filePathSegments || filePathSegments.length === 0) {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { ensureUploadsSymlink } from "@/lib/symlink";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +18,6 @@ export async function GET(request: NextRequest) {
     if (!fileUrl.startsWith("/uploads/")) {
       return new NextResponse("Invalid file URL", { status: 400 });
     }
-
-    // Ensure upload symlink is verified
-    ensureUploadsSymlink();
 
     const relativePath = fileUrl.replace(/^\/uploads\//, "");
     

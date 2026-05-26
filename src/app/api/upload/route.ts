@@ -4,7 +4,7 @@ import path from "path";
 import { existsSync, mkdirSync } from "fs";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { ensureUploadsSymlink } from "@/lib/symlink";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -81,8 +81,6 @@ export async function POST(req: NextRequest) {
       ? path.join(publicHtmlDir, "uploads")
       : path.join(process.cwd(), "public", "uploads");
 
-    // Ensure the uploads folder symlink is verified (as fallback)
-    ensureUploadsSymlink();
 
     // Ensure upload directory exists
     const uploadDir = path.join(baseUploadDir, relativeUploadDir);
