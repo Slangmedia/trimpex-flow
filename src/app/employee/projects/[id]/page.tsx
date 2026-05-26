@@ -318,7 +318,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                   />
                 </div>
               </CardContent>
-              {["REVISION_REQUIRED", "REJECTED", "ADMIN_REJECTED"].includes(status) && (
+              {["SUBMITTED", "REVISION_REQUIRED", "REJECTED", "ADMIN_REJECTED"].includes(status) && (
                 <CardFooter className="p-5">
                   <Button 
                     className="w-full bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90"
@@ -416,7 +416,13 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
                     className="hidden" 
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {
-                        setSelectedFile(e.target.files[0]);
+                        const file = e.target.files[0];
+                        setSelectedFile(file);
+                        
+                        const lastDotIndex = file.name.lastIndexOf('.');
+                        const baseName = lastDotIndex !== -1 ? file.name.substring(0, lastDotIndex) : file.name;
+                        const cleanName = baseName.replace(/[_-]/g, ' ');
+                        setNewRenderName(cleanName);
                       }
                     }}
                     disabled={isUploading}
@@ -813,7 +819,7 @@ export default function EmployeeProjectDetailPage({ params }: { params: { id: st
               {/* Detail Actions */}
               {detailRender && (
                 <div className="p-4 border-t border-border bg-card shrink-0 flex flex-col gap-2">
-                  {["REVISION_REQUIRED", "REJECTED", "ADMIN_REJECTED"].includes(detailRender.currentStatus || detailRender.status) && (
+                  {["SUBMITTED", "REVISION_REQUIRED", "REJECTED", "ADMIN_REJECTED"].includes(detailRender.currentStatus || detailRender.status) && (
                     <Button
                       className="w-full bg-status-revision-foreground text-status-revision hover:bg-status-revision-foreground/90 font-semibold"
                       onClick={() => {

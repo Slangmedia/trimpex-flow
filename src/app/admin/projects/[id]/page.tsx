@@ -175,6 +175,11 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     if (file) {
       setSelectedFile(file);
       setFilePreview(URL.createObjectURL(file));
+      
+      const lastDotIndex = file.name.lastIndexOf('.');
+      const baseName = lastDotIndex !== -1 ? file.name.substring(0, lastDotIndex) : file.name;
+      const cleanName = baseName.replace(/[_-]/g, ' ');
+      setNewRenderName(cleanName);
     }
   };
 
