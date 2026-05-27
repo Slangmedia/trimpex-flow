@@ -42,20 +42,59 @@ export async function GET(
     }
 
     const fileRelativePath = path.join(...filePathSegments);
+    const cleanFileName = filename.replace(/^\d+-\d+-/, "").replace(/^\d+-/, "");
+    const spaceFileName = cleanFileName.replace(/[_-]/g, " ");
+    const folderPath = filePathSegments.length > 1 ? path.join(...filePathSegments.slice(0, -1)) : "";
+    const firstSegment = filePathSegments.length > 0 ? filePathSegments[0] : "";
     
-    // Resolve file path by checking common directories (main domain, subdomains, local, etc.)
-    const possiblePaths = [
-      path.join(process.cwd(), "public", "uploads", fileRelativePath),
-      path.join(os.homedir(), "renderflow_uploads", fileRelativePath),
+    // We will check multiple base upload directories
+    const baseUploadDirs = [
+      path.join(os.homedir(), "renderflow_uploads"),
+      path.join(os.homedir(), "Downloads", "uploads"),
+      path.join(process.cwd(), "public", "uploads"),
+    ];
+
+    const possiblePaths: string[] = [];
+
+    // Add direct relative path matches
+    possiblePaths.push(path.join(process.cwd(), "public", "uploads", fileRelativePath));
+    for (const baseDir of baseUploadDirs) {
+      possiblePaths.push(path.join(baseDir, fileRelativePath));
+    }
+
+    // Add segment/clean-name/space-name fallbacks
+    for (const baseDir of baseUploadDirs) {
+      // 1. Direct clean/space names in base directory
+      possiblePaths.push(path.join(baseDir, cleanFileName));
+      possiblePaths.push(path.join(baseDir, spaceFileName));
+
+      // 2. Clean/space names in the first segment folder (e.g. production/ANIMA BROWN.png)
+      if (firstSegment) {
+        possiblePaths.push(path.join(baseDir, firstSegment, cleanFileName));
+        possiblePaths.push(path.join(baseDir, firstSegment, spaceFileName));
+        possiblePaths.push(path.join(baseDir, firstSegment, filename));
+      }
+
+      // 3. Clean/space names in full subfolder path (e.g. production/2026-05/ANIMA BROWN.png)
+      if (folderPath) {
+        possiblePaths.push(path.join(baseDir, folderPath, cleanFileName));
+        possiblePaths.push(path.join(baseDir, folderPath, spaceFileName));
+      }
+    }
+
+    // Add other web root relative paths
+    possiblePaths.push(
       path.resolve(process.cwd(), "..", "public_html", "uploads", fileRelativePath),
       path.resolve(process.cwd(), "..", "public_html", "flow", "uploads", fileRelativePath),
       path.resolve(process.cwd(), "..", "public_html", "flow.trimpexstudio.com", "uploads", fileRelativePath),
       path.resolve(process.cwd(), "..", "flow.trimpexstudio.com", "public", "uploads", fileRelativePath),
-      path.resolve(process.cwd(), "uploads", fileRelativePath),
-    ];
+      path.resolve(process.cwd(), "uploads", fileRelativePath)
+    );
+
+    const filteredPossiblePaths = possiblePaths.filter(p => p !== "");
 
     let filePath = "";
-    for (const p of possiblePaths) {
+    for (const p of filteredPossiblePaths) {
       if (fs.existsSync(p)) {
         filePath = p;
         break;

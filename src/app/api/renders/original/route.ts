@@ -21,20 +21,62 @@ export async function GET(request: NextRequest) {
     }
 
     const relativePath = fileUrl.replace(/^\/uploads\//, "");
+    const filename = path.basename(relativePath);
+    const cleanFileName = filename.replace(/^\d+-\d+-/, "").replace(/^\d+-/, "");
+    const spaceFileName = cleanFileName.replace(/[_-]/g, " ");
+    const relativeDir = path.dirname(relativePath);
     
-    // Resolve file path by checking common directories (main domain, subdomains, local, etc.)
-    const possiblePaths = [
-      path.join(process.cwd(), "public", "uploads", relativePath),
-      path.join(os.homedir(), "renderflow_uploads", relativePath),
+    const filePathSegments = relativePath.split("/");
+    const firstSegment = filePathSegments.length > 0 ? filePathSegments[0] : "";
+
+    // We will check multiple base upload directories
+    const baseUploadDirs = [
+      path.join(os.homedir(), "renderflow_uploads"),
+      path.join(os.homedir(), "Downloads", "uploads"),
+      path.join(process.cwd(), "public", "uploads"),
+    ];
+
+    const possiblePaths: string[] = [];
+
+    // Add direct relative path matches
+    possiblePaths.push(path.join(process.cwd(), "public", "uploads", relativePath));
+    for (const baseDir of baseUploadDirs) {
+      possiblePaths.push(path.join(baseDir, relativePath));
+    }
+
+    // Add segment/clean-name/space-name fallbacks
+    for (const baseDir of baseUploadDirs) {
+      // 1. Direct clean/space names in base directory
+      possiblePaths.push(path.join(baseDir, cleanFileName));
+      possiblePaths.push(path.join(baseDir, spaceFileName));
+
+      // 2. Clean/space names in the first segment folder (e.g. production/ANIMA BROWN.png)
+      if (firstSegment) {
+        possiblePaths.push(path.join(baseDir, firstSegment, cleanFileName));
+        possiblePaths.push(path.join(baseDir, firstSegment, spaceFileName));
+        possiblePaths.push(path.join(baseDir, firstSegment, filename));
+      }
+
+      // 3. Clean/space names in full subfolder path (e.g. production/2026-05/ANIMA BROWN.png)
+      if (relativeDir && relativeDir !== ".") {
+        possiblePaths.push(path.join(baseDir, relativeDir, cleanFileName));
+        possiblePaths.push(path.join(baseDir, relativeDir, spaceFileName));
+      }
+    }
+
+    // Add other web root relative paths
+    possiblePaths.push(
       path.resolve(process.cwd(), "..", "public_html", "uploads", relativePath),
       path.resolve(process.cwd(), "..", "public_html", "flow", "uploads", relativePath),
       path.resolve(process.cwd(), "..", "public_html", "flow.trimpexstudio.com", "uploads", relativePath),
       path.resolve(process.cwd(), "..", "flow.trimpexstudio.com", "public", "uploads", relativePath),
-      path.resolve(process.cwd(), "uploads", relativePath),
-    ];
+      path.resolve(process.cwd(), "uploads", relativePath)
+    );
+
+    const filteredPossiblePaths = possiblePaths.filter(p => p !== "");
 
     let filePath = "";
-    for (const p of possiblePaths) {
+    for (const p of filteredPossiblePaths) {
       if (fs.existsSync(p)) {
         filePath = p;
         break;
