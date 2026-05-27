@@ -4,6 +4,7 @@ import path from "path";
 import { existsSync, mkdirSync } from "fs";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import os from "os";
 
 
 export async function POST(req: NextRequest) {
@@ -73,12 +74,12 @@ export async function POST(req: NextRequest) {
     const dateFolder = new Date().toISOString().slice(0, 7); // e.g. "2026-05"
     const relativeUploadDir = path.join(envFolder, dateFolder);
 
-    // Determine target upload directory: write directly to public_html/uploads in production
+    // Determine target upload directory: write directly to home directory renderflow_uploads in production
     const publicHtmlDir = path.resolve(process.cwd(), "..", "public_html");
     const isProdServer = existsSync(publicHtmlDir);
     
     const baseUploadDir = isProdServer 
-      ? path.join(publicHtmlDir, "uploads")
+      ? path.join(os.homedir(), "renderflow_uploads")
       : path.join(process.cwd(), "public", "uploads");
 
 

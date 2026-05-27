@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
     // Resolve file path by checking common directories (main domain, subdomains, local, etc.)
     const possiblePaths = [
       path.join(process.cwd(), "public", "uploads", relativePath),
+      path.join(os.homedir(), "renderflow_uploads", relativePath),
       path.resolve(process.cwd(), "..", "public_html", "uploads", relativePath),
       path.resolve(process.cwd(), "..", "public_html", "flow", "uploads", relativePath),
       path.resolve(process.cwd(), "..", "public_html", "flow.trimpexstudio.com", "uploads", relativePath),
